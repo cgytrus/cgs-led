@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CgsLedGui (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "CgsLedGui (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

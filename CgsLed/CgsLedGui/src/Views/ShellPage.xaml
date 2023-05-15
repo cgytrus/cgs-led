@@ -1,0 +1,42 @@
+<!-- Copyright (c) Microsoft Corporation and Contributors. -->
+<!-- Licensed under the MIT License. -->
+
+<UserControl
+    x:Class="CgsLedGui.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="using:Microsoft.Xaml.Interactivity"
+    xmlns:ic="using:Microsoft.Xaml.Interactions.Core"
+    xmlns:helpers="using:CgsLedGui.Helpers"
+    xmlns:ui="using:CommunityToolkit.WinUI.UI"
+    xmlns:views="using:CgsLedGui.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    HighContrastAdjustment="None"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <NavigationView
+            x:Name="navView"
+            CompactModeThresholdWidth="1007"
+            ExpandedModeThresholdWidth="1007"
+            IsBackButtonVisible="Collapsed"
+            IsBackEnabled="{x:Bind viewModel.isBackEnabled, Mode=OneWay}"
+            IsSettingsVisible="False"
+            IsTitleBarAutoPaddingEnabled="False"
+            SelectedItem="{x:Bind viewModel.selected, Mode=OneWay}">
+            <NavigationView.MenuItems>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:GeneralPage">General</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:StandbyPage">Standby</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:FirePage">Fire</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:AmbilightPage">Ambilight</NavigationViewItem>
+            </NavigationView.MenuItems>
+            <i:Interaction.Behaviors>
+                <ic:EventTriggerBehavior EventName="ItemInvoked">
+                    <ic:InvokeCommandAction Command="{x:Bind viewModel.itemInvokedCommand}" />
+                </ic:EventTriggerBehavior>
+            </i:Interaction.Behaviors>
+            <Frame x:Name="shellFrame" />
+        </NavigationView>
+    </Grid>
+</UserControl>

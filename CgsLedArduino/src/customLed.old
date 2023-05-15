@@ -1,0 +1,96 @@
+
+
+// copied from microled, modified by me
+template<size_t start, size_t end, int8_t pin>
+class customLed {
+private:
+    #define fade8(x, a) (((uint16_t)(x) * ((a) + 1)) >> 8)
+
+    const uint8_t order = 0b010010;
+
+    volatile uint8_t* _dat_port;
+    uint8_t _dat_mask;
+    uint8_t _mask_h;
+    uint8_t _mask_l;
+    uint8_t sregSave = SREG;
+
+    void systemUptimePoll() {
+        if(TIFR0 & (1 << TOV0)) {
+            asm volatile(
+                "IN __tmp_reg__,__SREG__\n\t"
+                "CLI\n\t"
+                "ICALL\n\t"
+                "OUT __SREG__,__tmp_reg__\n\t"
+                ::"z"(TIMER0_OVF_vect_num * 2)
+            );
+        }
+    }
+
+public:
+    customLed() {
+        _dat_mask = digitalPinToBitMask(pin);
+        _dat_port = portOutputRegister(digitalPinToPort(pin));
+    }
+
+    void show() {
+        _mask_h = _dat_mask | *_dat_port;
+        _mask_l = ~_dat_mask & *_dat_port;
+        for(size_t i = start; i < end; i++)
+            send(leds[i]);
+    }
+
+private:
+    void send(CRGB color) {
+        uint8_t data[3];
+
+        sregSave = SREG;
+        cli();
+
+        data[(order >> 4) & 0b11] = fade8(color.r, FastLED.getBrightness());
+        data[(order >> 2) & 0b11] = fade8(color.g, FastLED.getBrightness());
+        data[order & 0b11] = fade8(color.b, FastLED.getBrightness());
+
+        for(size_t i = 0; i < 3; i++)
+            sendRaw(data[i]);
+
+        SREG = sregSave;
+        //systemUptimePoll();
+    }
+
+    void sendRaw(uint8_t data) {
+        asm volatile(
+            "LDI 19, 8\n\t"
+            "_LOOP_START_%=:\n\t"
+            "ST X, %[SET_H]\n\t"
+            "SBRS %[DATA], 7\n\t"
+            "ST X, %[SET_L]\n\t"
+            "LSL  %[DATA]\n\t"
+            //-----------------------------------------------------------------------------------------
+            "LDI r20, 3\n\t"
+            "_DELAY_LOOP_%=:\n\t"
+            "DEC r20\n\t"
+            "BRNE _DELAY_LOOP_%=\n\t"
+            "NOP\n\t"
+            //-----------------------------------------------------------------------------------------
+            "ST X, %[SET_L]\n\t"
+            "DEC r19\n\t"
+            "BRNE  _LOOP_START_%=\n\t"
+            :
+            :[DATA] "r" (data),
+            [SET_H] "r" (_mask_h),
+            [SET_L] "r" (_mask_l),
+            "x" (_dat_port)
+            :"r19","r20"
+        );
+    }
+};
+customLed<0, LED_COUNT_0, PIN_0> leds0;
+customLed<LED_COUNT_0, LED_COUNT_0 + LED_COUNT_1, PIN_1> leds1;
+customLed<LED_COUNT_0 + LED_COUNT_1, LED_COUNT_0 + LED_COUNT_1 + LED_COUNT_2, PIN_2> leds2;
+
+void show() {
+    leds0.show();
+    leds1.show();
+    leds2.show();
+    //FastLED.show();
+}
