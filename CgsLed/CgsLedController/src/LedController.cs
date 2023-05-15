@@ -14,7 +14,7 @@ public class LedController {
     private bool _changeCustomMode;
 
     private readonly LedWriter _writer;
-    private bool _updateLock;
+    private bool _updateLock = true;
 
     private readonly Stopwatch _timer = Stopwatch.StartNew();
     private readonly Stopwatch _fpsTimer = Stopwatch.StartNew();

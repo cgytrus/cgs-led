@@ -39,6 +39,9 @@ internal static class Program {
     };
 
     private static void Main(string[] args) {
+        Start();
+        _led?.SetMode(fireMode);
+
         IPEndPoint ip = new(IPAddress.Loopback, 42069);
         TcpListener listener = new(ip);
         try {
