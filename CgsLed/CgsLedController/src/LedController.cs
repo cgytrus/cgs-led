@@ -74,6 +74,7 @@ public class LedController {
     }
 
     public void Stop() {
+        SetPowerOff();
         _stopping = true;
     }
 

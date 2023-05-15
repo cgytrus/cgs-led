@@ -3,6 +3,7 @@
 public enum MessageType : byte {
     Start,
     Stop,
+    Quit,
     ResetController,
     ConfigReset,
     ConfigFps,

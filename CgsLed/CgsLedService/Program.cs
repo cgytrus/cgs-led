@@ -18,6 +18,8 @@ internal static class Program {
     private const string DefaultPortName = "COM2";
     private const int DefaultBaudRate = 1000000;
 
+    private static bool _running = true;
+
     private static LedController? _led;
 
     private static readonly StandByMode standByMode = new() { period = TimeSpan.Zero };
@@ -47,7 +49,7 @@ internal static class Program {
         try {
             listener.Start();
 
-            while(true) {
+            while(_running) {
                 using TcpClient handler = listener.AcceptTcpClient();
                 using NetworkStream stream = handler.GetStream();
                 try { ReadMessage(stream); }
@@ -59,6 +61,7 @@ internal static class Program {
         }
         finally {
             listener.Stop();
+            _led?.Stop();
         }
     }
 
@@ -81,6 +84,10 @@ internal static class Program {
                 break;
             case MessageType.Stop:
                 Stop();
+                break;
+            case MessageType.Quit:
+                Stop();
+                _running = false;
                 break;
             case MessageType.ResetController:
                 ResetController();

@@ -25,6 +25,8 @@ internal static class Program {
                 break;
             case "stop": stream.WriteByte((byte)MessageType.Stop);
                 break;
+            case "quit": stream.WriteByte((byte)MessageType.Quit);
+                break;
             case "controller" when args[1] == "reset": stream.WriteByte((byte)MessageType.ResetController);
                 break;
             case "cfg": {
