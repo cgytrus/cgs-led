@@ -20,11 +20,11 @@ public class FireMode : CustomMode {
     }
 
     protected override void Frame() {
-        float time = _stopwatch.ElapsedMilliseconds / 10f;
+        float time = (float)_stopwatch.Elapsed.TotalSeconds * 0.8f;
         for(int i = 0; i < writer.totalLedCount; i++) {
-            float valueNoise = Perlin.Get(i / 30f, 0f, time);
-            float hueNoise = Perlin.Get(i, 0f, 0f);
-            writer.WriteHSV(hueNoise * 360f, 1f, valueNoise, false);
+            float valueNoise = Perlin.Get(i * 0.25f, 0f, time);
+            float hueNoise = Perlin.Get(i * 0.1f, time * 0.5f, 0f);
+            writer.WriteHSV(hueNoise * 60f, 1f, valueNoise, true);
         }
     }
 }
