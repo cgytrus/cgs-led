@@ -6,6 +6,5 @@ public enum FftConfigType : byte {
     From,
     To,
     Noise,
-    Mirror,
-    Fps
+    Mirror
 }

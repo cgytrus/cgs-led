@@ -12,13 +12,13 @@ public class FftMode : CustomMode, IDisposable {
     public float noiseCut { get; set; } = 0.08f;
     public bool mirror { get; set; } = true;
 
-    protected override DataType dataType => mirror ? DataType.FftMirroredData : DataType.FftData;
-    protected override bool running => _capture?.CaptureState == CaptureState.Capturing;
+    public override bool running => _capture?.CaptureState == CaptureState.Capturing;
 
     private WasapiLoopbackCapture? _capture;
     private FftEffect? _fft;
 
     private float[]? _rawFft;
+    private float[]? _bins;
 
     private bool _fftReady = true;
     private int _fftAddCounter;
@@ -26,10 +26,15 @@ public class FftMode : CustomMode, IDisposable {
 
     public override void StopMode() {
         _capture?.StopRecording();
-        base.StopMode();
+        while(_capture is not null && _capture.CaptureState != CaptureState.Stopped) { }
+        if(_fft is not null)
+            _fft.running = false;
+        _capture = null;
+        _fft = null;
     }
 
     protected override void Main() {
+        _bins = new float[writer.totalLedCount];
         const int fftBinCount = 512;
         _rawFft = new float[fftBinCount];
         _fft = new FftEffect(fftBinCount);
@@ -48,15 +53,6 @@ public class FftMode : CustomMode, IDisposable {
         _fft.running = true;
     }
 
-    protected override void MainEnd() {
-        while(_capture is not null && _capture.CaptureState != CaptureState.Stopped)
-            Thread.Sleep(1000);
-        if(_fft is not null)
-            _fft.running = false;
-        _capture = null;
-        _fft = null;
-    }
-
     private void UpdateFft(IReadOnlyList<float> fft) {
         while(!_fftReady) { }
 
@@ -66,8 +62,9 @@ public class FftMode : CustomMode, IDisposable {
         }
 
         for(int i = 0; i < showCount; i++) {
-            if(_fftAddCounter <= 0) _rawFft![i] = fft[showStart + i] * volume;
-            else _rawFft![i] += fft[showStart + i] * volume;
+            if(_fftAddCounter <= 0)
+                _rawFft![i] = 0f;
+            _rawFft![i] += fft[showStart + i] * volume;
         }
 
         _fftAddCounter++;
@@ -76,21 +73,29 @@ public class FftMode : CustomMode, IDisposable {
     protected override void Frame() {
         _fftReady = false;
 
-        for(byte strip = 0; strip < ledCounts.Length; strip++) {
-            int ledCount = mirror ? halfLedCounts[strip] : ledCounts[strip];
-
+        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
+            int fullLedCount = writer.ledCounts[strip];
+            int ledCount = mirror ? writer.halfLedCounts[strip] : fullLedCount;
+            int ledStart = writer.ledStarts[strip];
             for(int i = 0; i < ledCount; i++) {
                 if(_fftAddCounter == 0) {
-                    Set1(0);
+                    _bins![ledStart + i] = 0f;
                     continue;
                 }
 
                 float position = (float)i / ledCount;
                 float bin = FftEffect.GetBin(_rawFft!, _fftAddCounter, showCount, position);
                 bin = FftEffect.ProcessBin(bin, noiseCut);
-                byte value = (byte)MathF.Max(MathF.Min(bin * 255f, 255f), 0f);
-                Set1(value);
+                bin = MathF.Max(MathF.Min(bin, 1f), 0f);
+                _bins![ledStart + i] = bin;
+                if(mirror)
+                    _bins![ledStart + fullLedCount - i - 1] = bin;
             }
+        }
+
+        for(int i = 0; i < writer.totalLedCount; i++) {
+            float bin = _bins![i];
+            writer.WriteHSV(bin * 120f, 1f, bin, false);
         }
 
         _newFrame = true;
@@ -98,6 +103,7 @@ public class FftMode : CustomMode, IDisposable {
     }
 
     public void Dispose() {
-        if(_capture is not null) GC.SuppressFinalize(this);
+        if(_capture is not null)
+            GC.SuppressFinalize(this);
     }
 }

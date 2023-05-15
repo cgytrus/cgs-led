@@ -27,27 +27,43 @@ internal static class Program {
                 break;
             case "controller" when args[1] == "reset": stream.WriteByte((byte)MessageType.ResetController);
                 break;
-            case "cfg" when args[1] == "reset": stream.WriteByte((byte)MessageType.ResetSettings);
-                break;
-            case "bright": {
-                byte brightness = byte.Parse(args[1], CultureInfo.InvariantCulture);
-                stream.WriteByte((byte)MessageType.SetBrightness);
-                stream.WriteByte(brightness);
+            case "cfg": {
+                string name = args[1];
+                switch(name) {
+                    case "reset": stream.WriteByte((byte)MessageType.ConfigReset);
+                        break;
+                    case "fps":
+                        bool val = bool.Parse(args[2]);
+                        stream.WriteByte((byte)MessageType.ConfigFps);
+                        stream.Write(BitConverter.GetBytes(val));
+                        break;
+                    case "bright":
+                        byte brightness = byte.Parse(args[2], CultureInfo.InvariantCulture);
+                        stream.WriteByte((byte)MessageType.ConfigBrightness);
+                        stream.WriteByte(brightness);
+                        break;
+                }
                 break;
             }
+            case "off":
+                stream.WriteByte((byte)MessageType.SetPowerOff);
+                break;
             case "mode": {
                 string mode = args[1];
                 switch(mode) {
+                    case "standby":
+                        stream.WriteByte((byte)MessageType.SetStandByMode);
+                        break;
+                    case "fire":
+                        stream.WriteByte((byte)MessageType.SetFireMode);
+                        break;
                     case "fft":
                         stream.WriteByte((byte)MessageType.SetFftMode);
                         break;
                     case "ambilight":
                         stream.WriteByte((byte)MessageType.SetAmbilightMode);
                         break;
-                    default:
-                        BuiltInMode builtInMode = Enum.Parse<BuiltInMode>(mode, true);
-                        stream.WriteByte((byte)MessageType.SetMode);
-                        stream.WriteByte((byte)builtInMode);
+                    default: Console.WriteLine("Unknown command");
                         break;
                 }
                 break;
@@ -96,13 +112,6 @@ internal static class Program {
                         stream.Write(BitConverter.GetBytes(val));
                         break;
                     }
-                    case "fps": {
-                        bool val = bool.Parse(args[2]);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.Fps);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
                     default: Console.WriteLine("Unknown command");
                         break;
                 }
@@ -115,13 +124,6 @@ internal static class Program {
                         stream.WriteByte((byte)MessageType.SetAmbilightConfig);
                         stream.WriteByte((byte)AmbilightConfigType.Rate);
                         stream.Write(BitConverter.GetBytes(val.Ticks));
-                        break;
-                    }
-                    case "fps": {
-                        bool val = bool.Parse(args[2]);
-                        stream.WriteByte((byte)MessageType.SetAmbilightConfig);
-                        stream.WriteByte((byte)AmbilightConfigType.Fps);
-                        stream.Write(BitConverter.GetBytes(val));
                         break;
                     }
                     case "screen": {

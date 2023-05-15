@@ -9,6 +9,8 @@ using CgsLedController.Service;
 
 using CgsLedService.Modes.Ambilight;
 using CgsLedService.Modes.Fft;
+using CgsLedService.Modes.Fire;
+using CgsLedService.Modes.StandBy;
 
 namespace CgsLedService;
 
@@ -18,11 +20,12 @@ internal static class Program {
 
     private static LedController? _led;
 
+    private static readonly StandByMode standByMode = new() { period = TimeSpan.Zero };
+    private static readonly FireMode fireMode = new() { period = TimeSpan.Zero };
+
     private static readonly FftMode fftMode = new() {
-        ledCounts = new int[] { 177, 82, 30 },
         //period = TimeSpan.FromSeconds(1f / 3f),
-        period = TimeSpan.Zero, // no limit
-        showFps = false,
+        period = TimeSpan.Zero,
         volume = 100f / 8f,
         showStart = 0,
         showCount = 56,
@@ -31,9 +34,7 @@ internal static class Program {
     };
 
     private static readonly AmbilightMode ambilightMode = new() {
-        ledCounts = new int[] { 177, 82, 30 },
-        period = TimeSpan.Zero, // no limit
-        showFps = false,
+        period = TimeSpan.Zero,
         screen = 0
     };
 
@@ -81,25 +82,35 @@ internal static class Program {
             case MessageType.ResetController:
                 ResetController();
                 break;
-            case MessageType.ResetSettings:
-                ResetSettings();
+            case MessageType.ConfigReset:
+                ConfigReset();
                 break;
-            case MessageType.SetBrightness:
+            case MessageType.ConfigFps:
                 while(!stream.DataAvailable) { }
-                SetBrightness((byte)stream.ReadByte());
+                Span<byte> bytes = stackalloc byte[1] { (byte)stream.ReadByte() };
+                ConfigFps(BitConverter.ToBoolean(bytes));
                 break;
-            case MessageType.SetMode:
+            case MessageType.ConfigBrightness:
                 while(!stream.DataAvailable) { }
-                SetMode((BuiltInMode)stream.ReadByte());
+                ConfigBrightness((byte)stream.ReadByte());
+                break;
+            case MessageType.SetPowerOff:
+                SetPowerOff();
+                break;
+            case MessageType.SetStandByMode:
+                SetMode(standByMode);
+                break;
+            case MessageType.SetFireMode:
+                SetMode(fireMode);
                 break;
             case MessageType.SetFftMode:
-                SetFftMode();
+                SetMode(fftMode);
                 break;
             case MessageType.SetFftConfig:
                 SetFftConfig((FftConfigType)stream.ReadByte(), stream);
                 break;
             case MessageType.SetAmbilightMode:
-                SetAmbilightMode();
+                SetMode(ambilightMode);
                 break;
             case MessageType.SetAmbilightConfig:
                 SetAmbilightConfig((AmbilightConfigType)stream.ReadByte(), stream);
@@ -113,7 +124,7 @@ internal static class Program {
     private static void Start(string portName = DefaultPortName, int baudRate = DefaultBaudRate) {
         Console.WriteLine($"Starting on port {portName} with baud rate {baudRate}");
         SerialPort port = new(portName, baudRate, Parity.None, 8, StopBits.One);
-        _led = new LedController(port);
+        _led = new LedController(port, new int[] { 177, 82, 30 });
         _led.Start();
         Console.WriteLine("Ready");
     }
@@ -140,32 +151,39 @@ internal static class Program {
         _led.ResetController();
     }
 
-    private static void ResetSettings() {
+    private static void ConfigReset() {
         if(!CheckRunning())
             return;
         Console.WriteLine("Resetting settings");
         _led.ResetSettings();
     }
 
-    private static void SetBrightness(byte brightness) {
+    private static void ConfigFps(bool showFps) {
+        if(!CheckRunning())
+            return;
+        Console.WriteLine($"Setting show FPS to {showFps}");
+        _led.showFps = showFps;
+    }
+
+    private static void ConfigBrightness(byte brightness) {
         if(!CheckRunning())
             return;
         Console.WriteLine($"Setting brightness to {brightness.ToString()}");
         _led.SetBrightness(brightness);
     }
 
-    private static void SetMode(BuiltInMode builtInMode) {
+    private static void SetPowerOff() {
         if(!CheckRunning())
             return;
-        Console.WriteLine($"Setting mode to {builtInMode.ToString()}");
-        _led.SetMode(builtInMode);
+        Console.WriteLine($"Powering off");
+        _led.SetPowerOff();
     }
 
-    private static void SetFftMode() {
+    private static void SetMode(CustomMode mode) {
         if(!CheckRunning())
             return;
-        Console.WriteLine("Setting mode to FFT");
-        _led.SetMode(fftMode);
+        Console.WriteLine($"Setting mode to {mode.GetType().Name}");
+        _led.SetMode(mode);
     }
 
     private static void SetFftConfig(FftConfigType type, NetworkStream stream) {
@@ -225,19 +243,7 @@ internal static class Program {
                 bytes = stackalloc byte[1] { (byte)stream.ReadByte() };
                 fftMode.mirror = BitConverter.ToBoolean(bytes);
                 break;
-            case FftConfigType.Fps:
-                while(stream.Socket.Available < 1) { }
-                bytes = stackalloc byte[1] { (byte)stream.ReadByte() };
-                fftMode.showFps = BitConverter.ToBoolean(bytes);
-                break;
         }
-    }
-
-    private static void SetAmbilightMode() {
-        if(!CheckRunning())
-            return;
-        Console.WriteLine("Setting mode to ambilight");
-        _led.SetMode(ambilightMode);
     }
 
     private static void SetAmbilightConfig(AmbilightConfigType type, NetworkStream stream) {
@@ -251,11 +257,6 @@ internal static class Program {
                     (byte)stream.ReadByte()
                 };
                 ambilightMode.period = TimeSpan.FromSeconds(1f / BitConverter.ToInt32(bytes));
-                break;
-            case AmbilightConfigType.Fps:
-                while(stream.Socket.Available < 1) { }
-                bytes = stackalloc byte[1] { (byte)stream.ReadByte() };
-                ambilightMode.showFps = BitConverter.ToBoolean(bytes);
                 break;
             case AmbilightConfigType.Screen:
                 while(stream.Socket.Available < 4) { }

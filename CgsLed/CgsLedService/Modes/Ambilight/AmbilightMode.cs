@@ -10,8 +10,7 @@ public partial class AmbilightMode : CustomMode {
     public int screen { get; set; }
     public string? window { get; set; }
 
-    protected override DataType dataType => DataType.RawData;
-    protected override bool running => _running;
+    public override bool running => _running;
 
     private bool _running;
 
@@ -20,7 +19,8 @@ public partial class AmbilightMode : CustomMode {
 
     public override void StopMode() {
         _running = false;
-        base.StopMode();
+        _screenCapture?.Dispose();
+        _screenCapture = null;
     }
 
     // ReSharper disable MemberCanBePrivate.Local FieldCanBeMadeReadOnly.Local
@@ -111,7 +111,7 @@ public partial class AmbilightMode : CustomMode {
         }
 
         _captures[0] = _screenCapture.RegisterCaptureZone(captureX, captureY, captureWidth, captureHeight,
-            GetApproxDownscaleLevel(captureWidth, ledCounts[0]));
+            GetApproxDownscaleLevel(captureWidth, writer.ledCounts[0]));
 
         //_captures[1] = _screenCapture.RegisterCaptureZone(0, 0, captureWidth, captureHeight,
         //    GetApproxDownscaleLevel(captureWidth, ledCounts[1]));
@@ -120,18 +120,12 @@ public partial class AmbilightMode : CustomMode {
         int bottomHeight = captureHeight / 5;
         _captures[2] = _screenCapture.RegisterCaptureZone(captureX, captureY + captureHeight - bottomHeight,
             captureWidth, bottomHeight,
-            GetApproxDownscaleLevel(captureWidth, ledCounts[2]));
+            GetApproxDownscaleLevel(captureWidth, writer.ledCounts[2]));
 
         _running = true;
     }
 
     private static int GetApproxDownscaleLevel(int from, int to) => (int)MathF.Round(MathF.Sqrt((float)from / to));
-
-    protected override void MainEnd() {
-        _screenCapture?.Dispose();
-        _screenCapture = null;
-        Thread.Sleep(3000);
-    }
 
     // ReSharper disable once CognitiveComplexity
     protected override void Frame() {
@@ -142,8 +136,8 @@ public partial class AmbilightMode : CustomMode {
 
         _screenCapture.CaptureScreen();
 
-        for(byte strip = 0; strip < ledCounts.Length; strip++) {
-            int pixelCount = ledCounts[strip];
+        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
+            int pixelCount = writer.ledCounts[strip];
 
             CaptureZone capture = _captures[strip];
             lock(capture.Buffer) {
@@ -172,7 +166,7 @@ public partial class AmbilightMode : CustomMode {
                     avgG /= avgCount;
                     avgB /= avgCount;
 
-                    SetColor((byte)avgR, (byte)avgG, (byte)avgB);
+                    writer.WriteRGB((byte)avgR, (byte)avgG, (byte)avgB, true);
                 }
             }
         }

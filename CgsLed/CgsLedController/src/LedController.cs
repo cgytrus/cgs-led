@@ -1,85 +1,112 @@
-﻿using System.IO.Ports;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.IO.Ports;
 
 namespace CgsLedController;
 
 public class LedController {
-    private readonly SerialPort _port;
-    private readonly byte[] _portBuffer = new byte[4];
-    private readonly object _portLock = new();
-
+    public bool showFps { get; set; } = true;
     public CustomMode? customMode { get; private set; }
 
-    public LedController(SerialPort port) => _port = port;
+    private bool _stopping;
+
+    private CustomMode? _nextCustomMode;
+    private bool _changeCustomMode;
+
+    private readonly LedWriter _writer;
+    private bool _updateLock;
+
+    private readonly Stopwatch _timer = Stopwatch.StartNew();
+    private readonly Stopwatch _fpsTimer = Stopwatch.StartNew();
+    private int _frames;
+    private const float FpsFrequency = 1f;
+
+    public LedController(SerialPort port, IReadOnlyList<int> ledCounts) => _writer = new LedWriter(port, ledCounts);
 
     public void Start() {
-        _port.Open();
-        Thread pingThread = new(PingThread);
+        _writer.Open();
+        Thread pingThread = new(MainThread);
         pingThread.Start();
     }
 
-    private void PingThread() {
-        while(!_port.IsOpen) { }
-        while(_port.IsOpen) {
-            Thread.Sleep(6900);
-            if(customMode?.stopped is not true)
-                continue;
-            if(!_port.IsOpen)
-                break;
-            _portBuffer[0] = (byte)DataType.Ping;
-            WritePort(1);
+    private void MainThread() {
+        while(!_writer.isOpen) { }
+        while(_writer.isOpen)
+            Update();
+        customMode?.StopMode();
+        _stopping = false;
+    }
+
+    private void Update() {
+        _timer.Restart();
+
+        _updateLock = true;
+
+        if(_changeCustomMode) {
+            _changeCustomMode = false;
+            customMode?.StopMode();
+            _nextCustomMode?.Start(_writer);
+            customMode = _nextCustomMode;
         }
+
+        if(customMode?.running is true)
+            customMode.Update();
+        _writer.Send();
+        if(_stopping)
+            _writer.Close();
+
+        _updateLock = false;
+
+        TimeSpan toWait = (customMode?.running is not true ? TimeSpan.FromSeconds(1f) : customMode.period) -
+            _timer.Elapsed;
+        if(toWait.Ticks > 0)
+            Thread.Sleep(toWait);
+
+        if(!showFps)
+            return;
+        _frames++;
+
+        if(_fpsTimer.Elapsed.TotalSeconds < FpsFrequency)
+            return;
+        Console.WriteLine((_frames / _fpsTimer.Elapsed.TotalSeconds).ToString(CultureInfo.InvariantCulture));
+        _fpsTimer.Restart();
+        _frames = 0;
     }
 
     public void Stop() {
-        customMode?.StopMode();
-        while(_port is { IsOpen: true, BytesToWrite: > 0 })
-            Thread.Sleep(100);
-        lock(_portLock) {
-            _port.Close();
-        }
+        _stopping = true;
     }
 
     public void ResetController() {
-        _portBuffer[0] = (byte)DataType.Reset;
-        WritePort(1);
+        WaitForLock();
+        _writer.Write1((byte)DataType.Reset);
     }
 
     public void ResetSettings() {
-        _portBuffer[0] = (byte)DataType.SettingsReset;
-        WritePort(1);
+        WaitForLock();
+        _writer.Write1((byte)DataType.SettingsReset);
     }
 
-    public void SetMode(BuiltInMode builtInMode) {
-        // we should use the SetMode(CustomMode) overload to set a custom mode
-        if(builtInMode == BuiltInMode.Custom)
-            return;
-        customMode?.StopMode();
-        _portBuffer[0] = (byte)DataType.Mode;
-        _portBuffer[1] = (byte)builtInMode;
-        WritePort(2);
+    public void SetPowerOff() {
+        WaitForLock();
+        _nextCustomMode = null;
+        _changeCustomMode = true;
+        _writer.Write2((byte)DataType.Power, 0);
     }
 
     public void SetMode(CustomMode customMode) {
-        this.customMode?.StopMode();
-
-        _portBuffer[0] = (byte)DataType.Mode;
-        _portBuffer[1] = (byte)BuiltInMode.Custom;
-
-        this.customMode = customMode;
-        this.customMode.Start(_port, _portLock);
-
-        WritePort(2);
+        WaitForLock();
+        _nextCustomMode = customMode;
+        _changeCustomMode = true;
+        _writer.Write2((byte)DataType.Power, 1);
     }
 
     public void SetBrightness(byte brightness) {
-        _portBuffer[0] = (byte)DataType.Brightness;
-        _portBuffer[1] = brightness;
-        WritePort(2);
+        WaitForLock();
+        _writer.Write2((byte)DataType.Brightness, brightness);
     }
 
-    private void WritePort(int count) {
-        lock(_portLock) {
-            _port.Write(_portBuffer, 0, count);
-        }
+    private void WaitForLock() {
+        while(_updateLock) { }
     }
 }

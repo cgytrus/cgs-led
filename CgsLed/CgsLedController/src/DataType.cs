@@ -4,10 +4,8 @@ public enum DataType : byte {
     None,
     Reset,
     SettingsReset,
-    Mode,
+    Power,
     Brightness,
     RawData,
-    FftData,
-    FftMirroredData,
     Ping
 }
