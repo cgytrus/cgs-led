@@ -5,7 +5,7 @@ using System.IO.Ports;
 namespace CgsLedController;
 
 public class LedController {
-    public bool showFps { get; set; } = true;
+    public bool showFps { get; set; }
     public CustomMode? customMode { get; private set; }
 
     private bool _stopping;
