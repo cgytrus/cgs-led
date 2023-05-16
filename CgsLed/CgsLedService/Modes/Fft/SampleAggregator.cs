@@ -37,5 +37,5 @@ internal sealed class SampleAggregator {
 
 public class FftEventArgs : EventArgs {
     public FftEventArgs(Complex[] result) => this.result = result;
-    public Complex[] result { get; private set; }
+    public Complex[] result { get; }
 }

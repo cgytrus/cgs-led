@@ -6,7 +6,7 @@ using ScreenCapture.NET;
 
 namespace CgsLedService.Modes.Ambilight;
 
-public partial class AmbilightMode : CustomMode {
+public partial class AmbilightMode : LedMode {
     public int screen { get; set; }
     public string? window { get; set; }
 
@@ -166,7 +166,7 @@ public partial class AmbilightMode : CustomMode {
                     avgG /= avgCount;
                     avgB /= avgCount;
 
-                    writer.WriteRGB((byte)avgR, (byte)avgG, (byte)avgB, true);
+                    writer.WriteRgb((byte)avgR, (byte)avgG, (byte)avgB, true);
                 }
             }
         }

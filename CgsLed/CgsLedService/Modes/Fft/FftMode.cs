@@ -5,7 +5,7 @@ using NAudio.Wave;
 
 namespace CgsLedService.Modes.Fft;
 
-public class FftMode : CustomMode, IDisposable {
+public class FftMode : LedMode, IDisposable {
     public float volume { get; set; } = 1f;
     public int showStart { get; set; } = 384;
     public int showCount { get; set; } = 64;
@@ -95,7 +95,7 @@ public class FftMode : CustomMode, IDisposable {
 
         for(int i = 0; i < writer.totalLedCount; i++) {
             float bin = _bins![i];
-            writer.WriteHSV(bin * 120f, 1f, bin, false);
+            writer.WriteHsv(bin * 120f, 1f, bin, false);
         }
 
         _newFrame = true;

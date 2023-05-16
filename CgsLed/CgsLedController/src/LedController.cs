@@ -6,11 +6,11 @@ namespace CgsLedController;
 
 public class LedController {
     public bool showFps { get; set; }
-    public CustomMode? customMode { get; private set; }
+    public LedMode? customMode { get; private set; }
 
     private bool _stopping;
 
-    private CustomMode? _nextCustomMode;
+    private LedMode? _nextCustomMode;
     private bool _changeCustomMode;
 
     private readonly LedWriter _writer;
@@ -95,9 +95,9 @@ public class LedController {
         _writer.Write2((byte)DataType.Power, 0);
     }
 
-    public void SetMode(CustomMode customMode) {
+    public void SetMode(LedMode mode) {
         WaitForLock();
-        _nextCustomMode = customMode;
+        _nextCustomMode = mode;
         _changeCustomMode = true;
         _writer.Write2((byte)DataType.Power, 1);
     }

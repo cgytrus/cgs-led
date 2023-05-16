@@ -1,13 +1,9 @@
-﻿using System.Diagnostics;
-using System.Globalization;
-using System.IO.Ports;
-
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace CgsLedController;
 
 [PublicAPI]
-public abstract class CustomMode {
+public abstract class LedMode {
     private const int HeaderSize = 1;
 
     public TimeSpan period { get; set; } = TimeSpan.FromSeconds(1f / 20f);

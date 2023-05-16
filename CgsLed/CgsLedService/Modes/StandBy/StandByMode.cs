@@ -4,7 +4,7 @@ using CgsLedController;
 
 namespace CgsLedService.Modes.StandBy;
 
-public class StandByMode : CustomMode {
+public class StandByMode : LedMode {
     public override bool running => _running;
     private bool _running;
 
@@ -24,7 +24,7 @@ public class StandByMode : CustomMode {
             byte offset =
                 (byte)MathF.Min(MathF.Max(MathF.Sin((_stopwatch.ElapsedMilliseconds + i * 100) / 1000f) * 40f, 0f),
                     255f);
-            writer.WriteRGB(offset, (byte)int.Clamp(255 + offset, 0, 255), offset, false);
+            writer.WriteRgb(offset, (byte)int.Clamp(255 + offset, 0, 255), offset, false);
         }
     }
 }

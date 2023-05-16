@@ -26,7 +26,6 @@ internal static class Program {
     private static readonly FireMode fireMode = new() { period = TimeSpan.Zero };
 
     private static readonly FftMode fftMode = new() {
-        //period = TimeSpan.FromSeconds(1f / 3f),
         period = TimeSpan.Zero,
         volume = 100f / 8f,
         showStart = 0,
@@ -189,7 +188,7 @@ internal static class Program {
         _led.SetPowerOff();
     }
 
-    private static void SetMode(CustomMode mode) {
+    private static void SetMode(LedMode mode) {
         if(!CheckRunning())
             return;
         Console.WriteLine($"Setting mode to {mode.GetType().Name}");

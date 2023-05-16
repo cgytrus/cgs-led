@@ -112,20 +112,20 @@ public class LedWriter {
         192, 194, 196, 197, 199, 201, 203, 205, 207, 209, 211, 213, 215, 217, 219, 221,
         223, 225, 227, 229, 231, 234, 236, 238, 240, 242, 244, 246, 248, 251, 253, 255
     };
-    public void WriteRGB(byte r, byte g, byte b, bool gamma) {
+    public void WriteRgb(byte r, byte g, byte b, bool gamma) {
         if(gamma)
             Write3(gamma8[r], gamma8[g], gamma8[b]);
         else
             Write3(r, g, b);
     }
-    public void WriteHSV(float h, float s, float v, bool gamma) {
+    public void WriteHsv(float h, float s, float v, bool gamma) {
         float r;
         float g;
         float b;
 
         if(s <= 0f) {
             byte bv = (byte)(v * 255f);
-            WriteRGB(bv, bv, bv, gamma);
+            WriteRgb(bv, bv, bv, gamma);
             return;
         }
 
@@ -172,6 +172,6 @@ public class LedWriter {
                 break;
         }
 
-        WriteRGB((byte)(r * 255f), (byte)(g * 255f), (byte)(b * 255f), gamma);
+        WriteRgb((byte)(r * 255f), (byte)(g * 255f), (byte)(b * 255f), gamma);
     }
 }
