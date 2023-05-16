@@ -10,6 +10,8 @@ public class FireMode : LedMode {
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
+    public FireMode(Configuration config) : base(config) { }
+
     public override void StopMode() {
         _running = false;
     }

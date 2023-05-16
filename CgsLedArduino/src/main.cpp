@@ -1,15 +1,12 @@
-void(*reset)(void) = 0;
+#define NO_CORRECTION 1
+#define NO_CLOCK_CORRECTION 0
 
 #include <Arduino.h>
-#include <EEPROM.h>
 #include <FastLED.h>
 
 enum class DataType : uint8_t {
     None,
-    Reset,
-    SettingsReset,
     Power,
-    Brightness,
     RawData,
     Ping
 };
@@ -36,29 +33,12 @@ constexpr size_t start2 = end1 + 1;
 constexpr size_t totalLedCount = ledCount0 + ledCount1 + ledCount2;
 constexpr size_t totalDataCount = totalLedCount * 3;
 
-constexpr uint8_t defaultBrightness = 63; // 0-255
-
-constexpr uint8_t currentEepromVersion = 0;
-constexpr uint8_t eepromVersion = 0;
-constexpr uint8_t eepromBrightness = 1;
-
 constexpr int32_t baudRate = 1000000;
 constexpr int32_t dataTimeout = 7000; // ms
 
 bool power = false;
 CRGB leds[totalLedCount];
 bool pendingShow = false;
-
-void resetSettings() {
-    EEPROM.write(eepromVersion, currentEepromVersion);
-    EEPROM.write(eepromBrightness, defaultBrightness);
-}
-
-void loadSettings() {
-    if(EEPROM.read(eepromVersion) != currentEepromVersion)
-        resetSettings();
-    FastLED.setBrightness(EEPROM.read(eepromBrightness));
-}
 
 void setPower(bool newPower) {
     power = newPower;
@@ -76,7 +56,6 @@ void setup() {
 
     setPower(power);
     Serial.begin(baudRate);
-    loadSettings();
 
     // reset any pending data
     int dataInt;
@@ -105,27 +84,11 @@ uint8_t readNext() {
     return static_cast<uint8_t>(dataInt);
 }
 
-void readReset() {
-    reset();
-}
-
-void readSettingsReset() {
-    resetSettings();
-}
-
 void readPower() {
     uint8_t data = readNext();
     if(readNextNoData)
         return;
     setPower(data > 0);
-}
-
-void readBrightness() {
-    uint8_t data = readNext();
-    if(readNextNoData)
-        return;
-    FastLED.setBrightness(data);
-    EEPROM.write(eepromBrightness, data);
 }
 
 void readRawData() {
@@ -142,6 +105,7 @@ void readRawData() {
 void readPing() {
     if(pendingShow)
         FastLED.show();
+    pendingShow = false;
     Serial.write(0); // pong
 }
 
@@ -152,13 +116,7 @@ void tryReadSerial() {
     dataType = static_cast<DataType>(dataInt);
     switch(dataType) {
         case DataType::None: break;
-        case DataType::Reset: readReset();
-            break;
-        case DataType::SettingsReset: readSettingsReset();
-            break;
         case DataType::Power: readPower();
-            break;
-        case DataType::Brightness: readBrightness();
             break;
         case DataType::RawData: readRawData();
             break;

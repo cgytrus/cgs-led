@@ -10,6 +10,8 @@ public class StandByMode : LedMode {
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
+    public StandByMode(Configuration config) : base(config) { }
+
     public override void StopMode() {
         _running = false;
     }

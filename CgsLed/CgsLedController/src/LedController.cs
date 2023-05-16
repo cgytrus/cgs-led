@@ -5,13 +5,14 @@ using System.IO.Ports;
 namespace CgsLedController;
 
 public class LedController {
-    public bool showFps { get; set; }
-    public LedMode? customMode { get; private set; }
+    public record Configuration(float brightness, bool showFps);
+    public Configuration config { get; set; }
+    public LedMode? mode { get; private set; }
 
     private bool _stopping;
 
-    private LedMode? _nextCustomMode;
-    private bool _changeCustomMode;
+    private LedMode? _nextMode;
+    private bool _changeMode;
 
     private readonly LedWriter _writer;
     private bool _updateLock = true;
@@ -21,7 +22,10 @@ public class LedController {
     private int _frames;
     private const float FpsFrequency = 1f;
 
-    public LedController(SerialPort port, IReadOnlyList<int> ledCounts) => _writer = new LedWriter(port, ledCounts);
+    public LedController(Configuration config, SerialPort port, IReadOnlyList<int> ledCounts) {
+        this.config = config;
+        _writer = new LedWriter(this, port, ledCounts);
+    }
 
     public void Start() {
         _writer.Open();
@@ -33,7 +37,7 @@ public class LedController {
         while(!_writer.isOpen) { }
         while(_writer.isOpen)
             Update();
-        customMode?.StopMode();
+        mode?.StopMode();
         _stopping = false;
     }
 
@@ -42,27 +46,28 @@ public class LedController {
 
         _updateLock = true;
 
-        if(_changeCustomMode) {
-            _changeCustomMode = false;
-            customMode?.StopMode();
-            _nextCustomMode?.Start(_writer);
-            customMode = _nextCustomMode;
+        if(_changeMode) {
+            _changeMode = false;
+            mode?.StopMode();
+            _nextMode?.Start(_writer);
+            mode = _nextMode;
         }
 
-        if(customMode?.running is true)
-            customMode.Update();
+        if(mode?.running is true)
+            mode.Update();
         _writer.Send();
         if(_stopping)
             _writer.Close();
 
         _updateLock = false;
 
-        TimeSpan toWait = (customMode?.running is not true ? TimeSpan.FromSeconds(1f) : customMode.period) -
+        TimeSpan toWait =
+            (mode?.running is not true ? TimeSpan.FromSeconds(5f) : mode.genericConfig.period) -
             _timer.Elapsed;
         if(toWait.Ticks > 0)
             Thread.Sleep(toWait);
 
-        if(!showFps)
+        if(!config.showFps)
             return;
         _frames++;
 
@@ -78,33 +83,18 @@ public class LedController {
         _stopping = true;
     }
 
-    public void ResetController() {
-        WaitForLock();
-        _writer.Write1((byte)DataType.Reset);
-    }
-
-    public void ResetSettings() {
-        WaitForLock();
-        _writer.Write1((byte)DataType.SettingsReset);
-    }
-
     public void SetPowerOff() {
         WaitForLock();
-        _nextCustomMode = null;
-        _changeCustomMode = true;
+        _nextMode = null;
+        _changeMode = true;
         _writer.Write2((byte)DataType.Power, 0);
     }
 
     public void SetMode(LedMode mode) {
         WaitForLock();
-        _nextCustomMode = mode;
-        _changeCustomMode = true;
+        _nextMode = mode;
+        _changeMode = true;
         _writer.Write2((byte)DataType.Power, 1);
-    }
-
-    public void SetBrightness(byte brightness) {
-        WaitForLock();
-        _writer.Write2((byte)DataType.Brightness, brightness);
     }
 
     private void WaitForLock() {

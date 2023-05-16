@@ -1,7 +1,10 @@
 ﻿using System.IO.Ports;
 
+using JetBrains.Annotations;
+
 namespace CgsLedController;
 
+[PublicAPI]
 public class LedWriter {
     private readonly SerialPort _port;
     private readonly byte[] _ledData = new byte[1024];
@@ -16,8 +19,13 @@ public class LedWriter {
 
     public bool isOpen => _port.IsOpen;
 
-    public LedWriter(SerialPort port, IReadOnlyList<int> ledCounts) {
+    private LedController _controller;
+
+    private bool _canContinue = true;
+
+    public LedWriter(LedController controller, SerialPort port, IReadOnlyList<int> ledCounts) {
         _port = port;
+        _controller = controller;
 
         this.ledCounts = ledCounts;
         halfLedCounts = ledCounts.Select(c => c % 2 == 0 ? c / 2 : c / 2 + 1).ToArray();
@@ -40,19 +48,15 @@ public class LedWriter {
 
     public void Send() {
         Write1((byte)DataType.Ping);
-        _port.Write(_ledData, 0, _totalDataCount);
         while(_port.BytesToWrite > 0) { }
-        bool canContinue = false;
-        while(!canContinue) {
+        while(!_canContinue) {
             while(_port.BytesToRead > 0) {
                 if(_port.ReadByte() == 0)
-                    canContinue = true;
+                    _canContinue = true;
             }
         }
-        Discard();
-    }
-
-    public void Discard() {
+        _canContinue = false;
+        _port.Write(_ledData, 0, _totalDataCount);
         _totalDataCount = 0;
     }
 
@@ -113,10 +117,16 @@ public class LedWriter {
         223, 225, 227, 229, 231, 234, 236, 238, 240, 242, 244, 246, 248, 251, 253, 255
     };
     public void WriteRgb(byte r, byte g, byte b, bool gamma) {
-        if(gamma)
-            Write3(gamma8[r], gamma8[g], gamma8[b]);
-        else
-            Write3(r, g, b);
+        if(gamma) {
+            r = gamma8[r];
+            g = gamma8[g];
+            b = gamma8[b];
+        }
+        float brightness = _controller.config.brightness;
+        r = (byte)(r * brightness);
+        g = (byte)(g * brightness);
+        b = (byte)(b * brightness);
+        Write3(r, g, b);
     }
     public void WriteHsv(float h, float s, float v, bool gamma) {
         float r;

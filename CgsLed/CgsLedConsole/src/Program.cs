@@ -12,179 +12,60 @@ internal static class Program {
     private const string DefaultPortName = "COM2";
     private const int DefaultBaudRate = 1000000;
 
+    private static BinaryWriter _writer = null!;
+    private static readonly CommandNode commands = new("", new CommandNode[] {
+        new("start", args => {
+            switch(args.Length) {
+                case 0: Start();
+                    break;
+                case 1: {
+                    if(int.TryParse(args[0], out int baudRate))
+                        Start(baudRate);
+                    else
+                        Start(args[0]);
+                    break;
+                }
+                default: Start(args[0], int.Parse(args[1], CultureInfo.InvariantCulture));
+                    break;
+            }
+        }),
+        new("stop", _ => _writer.Write((byte)MessageType.Stop)),
+        new("quit", _ => _writer.Write((byte)MessageType.Quit)),
+        new("off", _ => _writer.Write((byte)MessageType.SetPowerOff)),
+        new("mode", args => {
+            _writer.Write((byte)MessageType.SetMode);
+            _writer.Write(args[0]);
+        }),
+        new("cfg", new CommandNode[] {
+            new("svc", _ => _writer.Write((byte)MessageType.ReloadConfig)),
+            new("mode", args => {
+                _writer.Write((byte)MessageType.ReloadModeConfig);
+                _writer.Write(args[0]);
+            })
+        })
+    });
+
     private static void Main(string[] args) {
+        using MemoryStream stream = new(1024);
+        using BinaryWriter writer = new(stream, Encoding.Default);
+        stream.Position = sizeof(int);
+        _writer = writer;
+        commands.Run(args);
+        _writer = null!;
+        stream.Position = 0;
+        writer.Write((int)stream.Length - sizeof(int));
+
         IPEndPoint ip = new(IPAddress.Loopback, 42069);
         using TcpClient client = new();
         client.Connect(ip);
-        using NetworkStream stream = client.GetStream();
-
-        // TODO: jesus fucking christ
-        switch(args[0]) {
-            case "start": Start(stream, args.AsSpan()[1..]);
-                break;
-            case "stop": stream.WriteByte((byte)MessageType.Stop);
-                break;
-            case "quit": stream.WriteByte((byte)MessageType.Quit);
-                break;
-            case "controller" when args[1] == "reset": stream.WriteByte((byte)MessageType.ResetController);
-                break;
-            case "cfg": {
-                string name = args[1];
-                switch(name) {
-                    case "reset": stream.WriteByte((byte)MessageType.ConfigReset);
-                        break;
-                    case "fps":
-                        bool val = bool.Parse(args[2]);
-                        stream.WriteByte((byte)MessageType.ConfigFps);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    case "bright":
-                        byte brightness = byte.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.ConfigBrightness);
-                        stream.WriteByte(brightness);
-                        break;
-                }
-                break;
-            }
-            case "off":
-                stream.WriteByte((byte)MessageType.SetPowerOff);
-                break;
-            case "mode": {
-                string mode = args[1];
-                switch(mode) {
-                    case "standby":
-                        stream.WriteByte((byte)MessageType.SetStandByMode);
-                        break;
-                    case "fire":
-                        stream.WriteByte((byte)MessageType.SetFireMode);
-                        break;
-                    case "fft":
-                        stream.WriteByte((byte)MessageType.SetFftMode);
-                        break;
-                    case "ambilight":
-                        stream.WriteByte((byte)MessageType.SetAmbilightMode);
-                        break;
-                    default: Console.WriteLine("Unknown command");
-                        break;
-                }
-                break;
-            }
-            case "fft":
-                switch(args[1]) {
-                    case "vol": {
-                        int val = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.Volume);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "rate": {
-                        int val = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.Rate);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "from": {
-                        int val = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.From);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "to": {
-                        int val = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.To);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "noise": {
-                        float val = float.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.Noise);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "mirror": {
-                        bool val = bool.Parse(args[2]);
-                        stream.WriteByte((byte)MessageType.SetFftConfig);
-                        stream.WriteByte((byte)FftConfigType.Mirror);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    default: Console.WriteLine("Unknown command");
-                        break;
-                }
-                break;
-            case "ambilight":
-                switch(args[1]) {
-                    case "rate": {
-                        int rate = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        TimeSpan val = rate == 0 ? TimeSpan.Zero : TimeSpan.FromSeconds(1f / rate);
-                        stream.WriteByte((byte)MessageType.SetAmbilightConfig);
-                        stream.WriteByte((byte)AmbilightConfigType.Rate);
-                        stream.Write(BitConverter.GetBytes(val.Ticks));
-                        break;
-                    }
-                    case "screen": {
-                        int val = int.Parse(args[2], CultureInfo.InvariantCulture);
-                        stream.WriteByte((byte)MessageType.SetAmbilightConfig);
-                        stream.WriteByte((byte)AmbilightConfigType.Screen);
-                        stream.Write(BitConverter.GetBytes(val));
-                        break;
-                    }
-                    case "window" when args.Length > 2: {
-                        stream.WriteByte((byte)MessageType.SetAmbilightConfig);
-                        stream.WriteByte((byte)AmbilightConfigType.Window);
-                        Span<byte> bytes = stackalloc byte[256];
-                        int length = Encoding.Default.GetBytes(args[2], bytes);
-                        stream.Write(BitConverter.GetBytes(length));
-                        stream.Write(bytes[..length]);
-                        break;
-                    }
-                    case "window":
-                        stream.WriteByte((byte)MessageType.SetAmbilightConfig);
-                        stream.WriteByte((byte)AmbilightConfigType.WindowReset);
-                        break;
-                    default: Console.WriteLine("Unknown command");
-                        break;
-                }
-                break;
-            default: Console.WriteLine("Unknown command");
-                break;
-        }
+        using NetworkStream networkStream = client.GetStream();
+        stream.WriteTo(networkStream);
     }
 
-
-    private static void Start(Stream stream, Span<string> args) {
-        switch(args.Length) {
-            case 0: Start(stream);
-                break;
-            case 1: {
-                if(int.TryParse(args[0], out int baudRate))
-                    Start(stream, baudRate);
-                else
-                    Start(stream, args[0]);
-                break;
-            }
-            default: Start(stream, args[0], int.Parse(args[1], CultureInfo.InvariantCulture));
-                break;
-        }
-    }
-
-    private static void Start(Stream stream, int baudRate) => Start(stream, DefaultPortName, baudRate);
-    private static void Start(Stream stream, string portName = DefaultPortName, int baudRate = DefaultBaudRate) {
-        stream.WriteByte((byte)MessageType.Start);
-        stream.WriteByte((byte)Array.IndexOf(SerialPort.GetPortNames(), portName));
-        stream.Write(BitConverter.GetBytes(baudRate));
-    }
-
-    // ReSharper disable once UnusedMember.Local
-    private static void DrawProgressBar(float step, float value) {
-        Console.Write('|');
-        for(float fullBar = 0f; fullBar <= 1f; fullBar += step)
-            Console.Write(fullBar < value || value >= 1f ? '#' : '-');
-        Console.Write('|');
+    private static void Start(int baudRate) => Start(DefaultPortName, baudRate);
+    private static void Start(string portName = DefaultPortName, int baudRate = DefaultBaudRate) {
+        _writer.Write((byte)MessageType.Start);
+        _writer.Write((byte)Array.IndexOf(SerialPort.GetPortNames(), portName));
+        _writer.Write(baudRate);
     }
 }

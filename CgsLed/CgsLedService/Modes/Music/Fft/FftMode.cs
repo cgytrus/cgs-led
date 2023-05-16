@@ -3,14 +3,17 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-namespace CgsLedService.Modes.Fft;
+namespace CgsLedService.Modes.Music.Fft;
 
-public class FftMode : LedMode, IDisposable {
-    public float volume { get; set; } = 1f;
-    public int showStart { get; set; } = 384;
-    public int showCount { get; set; } = 64;
-    public float noiseCut { get; set; } = 0.08f;
-    public bool mirror { get; set; } = true;
+public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
+    public new record Configuration(
+        TimeSpan period,
+        float volume = 1f,
+        int showStart = 384,
+        int showCount = 64,
+        float noiseCut = 0.08f,
+        bool mirror = true) :
+        LedMode.Configuration(period);
 
     public override bool running => _capture?.CaptureState == CaptureState.Capturing;
 
@@ -23,6 +26,8 @@ public class FftMode : LedMode, IDisposable {
     private bool _fftReady = true;
     private int _fftAddCounter;
     private bool _newFrame;
+
+    public FftMode(Configuration config) : base(config) { }
 
     public override void StopMode() {
         _capture?.StopRecording();
@@ -44,7 +49,7 @@ public class FftMode : LedMode, IDisposable {
         int blockAlign = _capture.WaveFormat.BlockAlign;
         _capture.DataAvailable += (_, args) => {
             for(int index = 0; index < args.BytesRecorded; index += blockAlign) {
-                float sample = BitConverter.ToSingle(args.Buffer, index)/* * volume*/;
+                float sample = BitConverter.ToSingle(args.Buffer, index)/* * config.volume*/;
                 _fft.AddSample(sample);
             }
         };
@@ -61,10 +66,10 @@ public class FftMode : LedMode, IDisposable {
             _newFrame = false;
         }
 
-        for(int i = 0; i < showCount; i++) {
+        for(int i = 0; i < config.showCount; i++) {
             if(_fftAddCounter <= 0)
                 _rawFft![i] = 0f;
-            _rawFft![i] += fft[showStart + i] * volume;
+            _rawFft![i] += fft[config.showStart + i] * config.volume;
         }
 
         _fftAddCounter++;
@@ -75,7 +80,7 @@ public class FftMode : LedMode, IDisposable {
 
         for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
             int fullLedCount = writer.ledCounts[strip];
-            int ledCount = mirror ? writer.halfLedCounts[strip] : fullLedCount;
+            int ledCount = config.mirror ? writer.halfLedCounts[strip] : fullLedCount;
             int ledStart = writer.ledStarts[strip];
             for(int i = 0; i < ledCount; i++) {
                 if(_fftAddCounter == 0) {
@@ -84,11 +89,11 @@ public class FftMode : LedMode, IDisposable {
                 }
 
                 float position = (float)i / ledCount;
-                float bin = FftEffect.GetBin(_rawFft!, _fftAddCounter, showCount, position);
-                bin = FftEffect.ProcessBin(bin, noiseCut);
+                float bin = FftEffect.GetBin(_rawFft!, _fftAddCounter, config.showCount, position);
+                bin = FftEffect.ProcessBin(bin, config.noiseCut);
                 bin = MathF.Max(MathF.Min(bin, 1f), 0f);
                 _bins![ledStart + i] = bin;
-                if(mirror)
+                if(config.mirror)
                     _bins![ledStart + fullLedCount - i - 1] = bin;
             }
         }

@@ -6,9 +6,12 @@ using ScreenCapture.NET;
 
 namespace CgsLedService.Modes.Ambilight;
 
-public partial class AmbilightMode : LedMode {
-    public int screen { get; set; }
-    public string? window { get; set; }
+public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
+    public new record Configuration(
+        TimeSpan period,
+        int screen = 0,
+        string? window = null) :
+        LedMode.Configuration(period);
 
     public override bool running => _running;
 
@@ -16,6 +19,8 @@ public partial class AmbilightMode : LedMode {
 
     private IScreenCapture? _screenCapture;
     private readonly CaptureZone[] _captures = new CaptureZone[3];
+
+    public AmbilightMode(Configuration config) : base(config) { }
 
     public override void StopMode() {
         _running = false;
@@ -80,10 +85,11 @@ public partial class AmbilightMode : LedMode {
         int captureWidth;
         int captureHeight;
 
-        nint windowHwnd = window is null ? nint.Zero : FindWindowW(null, window);
-        nint foregroundWindowHwnd = screen < 0 ? GetForegroundWindow() : nint.Zero;
+        nint windowHwnd = config.window is null ? nint.Zero : FindWindowW(null, config.window);
+        nint foregroundWindowHwnd = config.screen < 0 ? GetForegroundWindow() : nint.Zero;
         if(windowHwnd != nint.Zero || foregroundWindowHwnd != nint.Zero) {
-            if(window is null) windowHwnd = foregroundWindowHwnd;
+            if(config.window is null)
+                windowHwnd = foregroundWindowHwnd;
             WindowInfo info = new(null);
             GetWindowInfo(windowHwnd, ref info);
             Rect rect = info.rcClient;
@@ -103,7 +109,7 @@ public partial class AmbilightMode : LedMode {
             captureHeight = Math.Min(rect.bottom - rect.top, _screenCapture.Display.Height - captureY);
         }
         else {
-            _screenCapture = screenCaptureService.GetScreenCapture(displays.ElementAt(screen));
+            _screenCapture = screenCaptureService.GetScreenCapture(displays.ElementAt(config.screen));
             captureX = 0;
             captureY = 0;
             captureWidth = _screenCapture.Display.Width;

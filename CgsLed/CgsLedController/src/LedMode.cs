@@ -6,7 +6,12 @@ namespace CgsLedController;
 public abstract class LedMode {
     private const int HeaderSize = 1;
 
-    public TimeSpan period { get; set; } = TimeSpan.FromSeconds(1f / 20f);
+    public record Configuration(TimeSpan period);
+
+    public virtual Type configType => typeof(Configuration);
+    public Configuration genericConfig { get; set; }
+
+    protected LedMode(Configuration config) => genericConfig = config;
 
     public abstract bool running { get; }
 
@@ -27,4 +32,15 @@ public abstract class LedMode {
     protected abstract void Main();
 
     protected abstract void Frame();
+}
+
+[PublicAPI]
+public abstract class LedMode<TConfig> : LedMode where TConfig : LedMode.Configuration {
+    public override Type configType => typeof(TConfig);
+    public TConfig config {
+        get => (TConfig)genericConfig;
+        set => genericConfig = value;
+    }
+
+    protected LedMode(TConfig config) : base(config) { }
 }
