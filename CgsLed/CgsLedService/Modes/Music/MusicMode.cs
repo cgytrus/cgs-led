@@ -1,4 +1,6 @@
-﻿using CgsLedController;
+﻿using System.Diagnostics;
+
+using CgsLedController;
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -9,12 +11,16 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     where TConfig : MusicMode<TConfig>.Configuration {
     public new record Configuration(
         TimeSpan period,
-        float volume = 1f) :
+        float volume,
+        MusicColors colors) :
         LedMode.Configuration(period);
 
     public override bool running => _capture?.CaptureState == CaptureState.Capturing;
 
     private WasapiLoopbackCapture? _capture;
+
+    protected float[]? values { get; private set; }
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     protected MusicMode(TConfig config) : base(config) { }
 
@@ -25,6 +31,8 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     }
 
     protected override void Main() {
+        _stopwatch.Restart();
+        values = new float[writer.totalLedCount];
         _capture = new WasapiLoopbackCapture();
         int blockAlign = _capture.WaveFormat.BlockAlign;
         _capture.DataAvailable += (_, args) => {
@@ -35,6 +43,14 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     }
 
     protected abstract void AddSample(float sample);
+
+    protected override void Frame() {
+        if(values is null)
+            return;
+        float time = (float)_stopwatch.Elapsed.TotalSeconds;
+        for(int i = 0; i < writer.totalLedCount; i++)
+            config.colors.WritePixel(writer, time, values[i]);
+    }
 
     public void Dispose() {
         if(_capture is not null)

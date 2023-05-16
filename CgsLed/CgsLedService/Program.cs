@@ -11,7 +11,9 @@ using CgsLedController.Service;
 
 using CgsLedService.Modes.Ambilight;
 using CgsLedService.Modes.Fire;
+using CgsLedService.Modes.Music;
 using CgsLedService.Modes.Music.Fft;
+using CgsLedService.Modes.Music.Waveform;
 using CgsLedService.Modes.StandBy;
 
 namespace CgsLedService;
@@ -39,8 +41,9 @@ internal static class Program {
 
     private static readonly IReadOnlyDictionary<string, LedMode> modes = new Dictionary<string, LedMode> {
         { "standby", new StandByMode(new LedMode.Configuration(TimeSpan.Zero)) },
-        { "fire", new FireMode(new FftMode.Configuration(TimeSpan.Zero)) },
-        { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, 0, 56, 0.25f)) },
+        { "fire", new FireMode(new LedMode.Configuration(TimeSpan.Zero)) },
+        { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, new MusicColors())) },
+        { "waveform", new WaveformMode(new WaveformMode.Configuration(TimeSpan.Zero, 100f / 50f, new MusicColors())) },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration(TimeSpan.Zero)) }
     };
 
