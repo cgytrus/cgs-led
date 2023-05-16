@@ -29,12 +29,11 @@ public class LedController {
 
     public void Start() {
         _writer.Open();
-        Thread pingThread = new(MainThread);
-        pingThread.Start();
+        Thread thread = new(MainThread);
+        thread.Start();
     }
 
     private void MainThread() {
-        while(!_writer.isOpen) { }
         while(_writer.isOpen)
             Update();
         mode?.StopMode();
@@ -62,7 +61,7 @@ public class LedController {
         _updateLock = false;
 
         TimeSpan toWait =
-            (mode?.running is not true ? TimeSpan.FromSeconds(5f) : mode.genericConfig.period) -
+            (mode?.running is not true ? TimeSpan.FromSeconds(1f) : mode.genericConfig.period) -
             _timer.Elapsed;
         if(toWait.Ticks > 0)
             Thread.Sleep(toWait);
@@ -79,6 +78,7 @@ public class LedController {
     }
 
     public void Stop() {
+        _writer.doPing = false;
         SetPowerOff();
         _stopping = true;
     }

@@ -1,11 +1,6 @@
-﻿using CgsLedController;
+﻿namespace CgsLedService.Modes.Music.Fft;
 
-using NAudio.CoreAudioApi;
-using NAudio.Wave;
-
-namespace CgsLedService.Modes.Music.Fft;
-
-public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
+public class FftMode : MusicMode<FftMode.Configuration> {
     public new record Configuration(
         TimeSpan period,
         float volume = 1f,
@@ -13,11 +8,8 @@ public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
         int showCount = 64,
         float noiseCut = 0.08f,
         bool mirror = true) :
-        LedMode.Configuration(period);
+        MusicMode<Configuration>.Configuration(period, volume);
 
-    public override bool running => _capture?.CaptureState == CaptureState.Capturing;
-
-    private WasapiLoopbackCapture? _capture;
     private FftEffect? _fft;
 
     private float[]? _rawFft;
@@ -30,12 +22,10 @@ public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
     public FftMode(Configuration config) : base(config) { }
 
     public override void StopMode() {
-        _capture?.StopRecording();
-        while(_capture is not null && _capture.CaptureState != CaptureState.Stopped) { }
         if(_fft is not null)
             _fft.running = false;
-        _capture = null;
         _fft = null;
+        base.StopMode();
     }
 
     protected override void Main() {
@@ -44,19 +34,11 @@ public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
         _rawFft = new float[fftBinCount];
         _fft = new FftEffect(fftBinCount);
         _fft.fftUpdated += (_, _) => UpdateFft(_fft.fft);
-
-        _capture = new WasapiLoopbackCapture();
-        int blockAlign = _capture.WaveFormat.BlockAlign;
-        _capture.DataAvailable += (_, args) => {
-            for(int index = 0; index < args.BytesRecorded; index += blockAlign) {
-                float sample = BitConverter.ToSingle(args.Buffer, index)/* * config.volume*/;
-                _fft.AddSample(sample);
-            }
-        };
-
-        _capture.StartRecording();
+        base.Main();
         _fft.running = true;
     }
+
+    protected override void AddSample(float sample) => _fft?.AddSample(sample);
 
     private void UpdateFft(IReadOnlyList<float> fft) {
         while(!_fftReady) { }
@@ -69,7 +51,7 @@ public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
         for(int i = 0; i < config.showCount; i++) {
             if(_fftAddCounter <= 0)
                 _rawFft![i] = 0f;
-            _rawFft![i] += fft[config.showStart + i] * config.volume;
+            _rawFft![i] += fft[config.showStart + i];
         }
 
         _fftAddCounter++;
@@ -105,10 +87,5 @@ public class FftMode : LedMode<FftMode.Configuration>, IDisposable {
 
         _newFrame = true;
         _fftReady = true;
-    }
-
-    public void Dispose() {
-        if(_capture is not null)
-            GC.SuppressFinalize(this);
     }
 }

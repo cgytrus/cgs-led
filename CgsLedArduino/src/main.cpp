@@ -62,6 +62,8 @@ void setup() {
     do {
         dataInt = Serial.read();
     } while(dataInt >= 0);
+
+    Serial.write(1);
 }
 
 DataType dataType = DataType::None;
@@ -69,25 +71,16 @@ void endPacket() {
     dataType = DataType::None;
 }
 
-unsigned long lastDataTime = 0;
-bool readNextNoData = false;
-
 uint8_t readNext() {
-    int dataInt;
-    do {
-        if((millis() - lastDataTime) >= dataTimeout) {
-            readNextNoData = true;
-            return 0;
-        }
-        dataInt = Serial.read();
-    } while(dataInt < 0);
-    return static_cast<uint8_t>(dataInt);
+    while(true) {
+        int dataInt = Serial.read();
+        if(dataInt >= 0)
+            return static_cast<uint8_t>(dataInt);
+    }
 }
 
 void readPower() {
     uint8_t data = readNext();
-    if(readNextNoData)
-        return;
     setPower(data > 0);
 }
 
@@ -95,8 +88,6 @@ void readRawData() {
     auto rawData = reinterpret_cast<uint8_t*>(leds);
     for(size_t i = 0; i < totalDataCount; i++) {
         uint8_t data = readNext();
-        if(readNextNoData)
-            return;
         rawData[i] = data;
     }
     pendingShow = true;
@@ -124,20 +115,8 @@ void tryReadSerial() {
             break;
     }
     endPacket();
-    if(!readNextNoData)
-        lastDataTime = millis();
 }
 
 void loop() {
     tryReadSerial();
-
-    if(!power)
-        return;
-
-    if((millis() - lastDataTime) >= dataTimeout) {
-        endPacket();
-        setPower(false);
-        readNextNoData = false;
-        pendingShow = false;
-    }
 }

@@ -10,6 +10,8 @@ public class LedWriter {
     private readonly byte[] _ledData = new byte[1024];
     private int _totalDataCount;
 
+    public bool doPing { get; set; } = true;
+
     public IReadOnlyList<int> ledCounts { get; }
     public int totalLedCount { get; }
     public int totalHalfLedCount { get; }
@@ -43,13 +45,28 @@ public class LedWriter {
         this.halfLedStarts = halfLedStarts;
     }
 
-    public void Open() => _port.Open();
-    public void Close() => _port.Close();
+    public void Open() {
+        _port.DtrEnable = true;
+        _port.Open();
+        // wait for arduino to reset
+        bool canContinue = false;
+        while(!canContinue) {
+            while(_port.BytesToRead > 0) {
+                if(_port.ReadByte() == 1)
+                    canContinue = true;
+            }
+        }
+    }
+    public void Close() {
+        while(_port.BytesToWrite > 0) { }
+        _port.Close();
+    }
 
     public void Send() {
-        Write1((byte)DataType.Ping);
+        if(doPing)
+            Write1((byte)DataType.Ping);
         while(_port.BytesToWrite > 0) { }
-        while(!_canContinue) {
+        while(doPing && !_canContinue) {
             while(_port.BytesToRead > 0) {
                 if(_port.ReadByte() == 0)
                     _canContinue = true;
