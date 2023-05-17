@@ -1,9 +1,6 @@
 #define NO_CORRECTION 1
 #define NO_CLOCK_CORRECTION 0
 
-// register keyword isnt a thing in c++17 so we remove it
-#define register
-
 #include <Arduino.h>
 #include <FastLED.h>
 
