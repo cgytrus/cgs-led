@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <FastLED.h>
+#include "uart.hpp"
 
 // --- SETTINGS ---
 
@@ -57,27 +58,18 @@ void setup() {
     add_leds_at<0, data>();
 
     setPower(false);
-    Serial.begin(baudRate);
+    uart::begin(baudRate);
 
-    // reset any pending data
-    int dataInt;
-    do {
-        dataInt = Serial.read();
-    } while(dataInt >= 0);
-
-    Serial.write(1);
+    uart::write(1);
 }
 
 uint8_t readNext() {
-    while(true) {
-        int dataInt = Serial.read();
-        if(dataInt >= 0)
-            return static_cast<uint8_t>(dataInt);
-    }
+    while(!uart::canRead()) { }
+    return uart::read();
 }
 
 void readPower() {
-    setPower(readNext() > 0);
+    setPower(readNext() != 0);
 }
 
 void readData() {
@@ -90,14 +82,13 @@ void readPing() {
     if(pendingShow)
         FastLED.show();
     pendingShow = false;
-    Serial.write(0); // pong hehe
+    uart::write(0); // pong hehe
 }
 
 void loop() {
-    int dataInt = Serial.read();
-    if(dataInt < 0)
+    if(!uart::canRead())
         return;
-    switch(static_cast<DataType>(dataInt)) {
+    switch(static_cast<DataType>(uart::read())) {
         case DataType::Power: readPower();
             break;
         case DataType::Data: readData();
