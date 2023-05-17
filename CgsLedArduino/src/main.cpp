@@ -1,5 +1,5 @@
 #define NO_CORRECTION 1
-#define NO_CLOCK_CORRECTION 0
+#define NO_CLOCK_CORRECTION 1
 
 #include <Arduino.h>
 #include <FastLED.h>
@@ -78,9 +78,17 @@ void readData() {
     pendingShow = true;
 }
 
+void fastShow() {
+    CLEDController *pCur = CLEDController::head();
+    while(pCur) {
+        pCur->showLeds();
+        pCur = pCur->next();
+    }
+}
+
 void readPing() {
     if(pendingShow)
-        FastLED.show();
+        fastShow();
     pendingShow = false;
     uart::write(0); // pong hehe
 }
