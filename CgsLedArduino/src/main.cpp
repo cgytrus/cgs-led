@@ -2,41 +2,42 @@
 #define NO_CLOCK_CORRECTION 1
 
 #include <Arduino.h>
-#include <FastLED.h>
+#include "led.hpp"
 #include "uart.hpp"
 
 // --- SETTINGS ---
 
 constexpr uint8_t relayPin = 3;
 
-template<uint8_t DATA_PIN>
-using strip_type = WS2812B<DATA_PIN, GRB>;
+constexpr M_order stripsOrder = M_order::ORDER_GRB;
 constexpr size_t stripCount = 3;
-constexpr uint8_t ledPins[stripCount] = { 5, 6, 9 };
-constexpr size_t ledCounts[stripCount] = { 177, 82, 30 };
+// have to be sorted by led count in descending order!
+constexpr led_data strips[stripCount] = { led_data(5, 177), led_data(6, 82), led_data(9, 30) };
 
 constexpr int32_t baudRate = 1000000;
 
 // ----------------
 
 // compile-time stuff collapse these
-template<typename T, size_t Size>
-constexpr T arraySum(const T (&arr)[Size]) {
-    T ret = 0;
+template<size_t Size>
+constexpr size_t arraySum(const led_data (&arr)[Size]) {
+    size_t ret = 0;
     for(size_t i = 0; i < Size; ++i)
-        ret += arr[i];
+        ret += arr[i].size;
     return ret;
 }
-constexpr size_t totalDataCount = arraySum(ledCounts) * sizeof(CRGB);
-template<size_t Index, uint8_t* Data>
+constexpr size_t totalDataCount = arraySum(strips);
+
+template<size_t Index, uint8_t* Data, const led_data* Strips, pin_data* Pins>
 struct add_leds_at {
     constexpr add_leds_at() {
         size_t ledStart = 0;
         for(size_t i = 0; i < Index; ++i)
-            ledStart += ledCounts[i];
-        FastLED.addLeds<strip_type, ledPins[Index]>(reinterpret_cast<CRGB*>(Data), ledStart, ledCounts[Index]);
+            ledStart += Strips[i].size;
+        led_data ledData = Strips[Index];
+        Pins[Index] = pin_data(ledData.pin, ledStart, ledData.size);
         if constexpr (Index + 1 < stripCount)
-            add_leds_at<Index + 1, Data>();
+            add_leds_at<Index + 1, Data, Strips, Pins>();
     }
 };
 
@@ -46,20 +47,17 @@ enum class DataType : uint8_t {
     Ping
 };
 
+pin_data pins[stripCount];
 uint8_t data[totalDataCount];
 bool pendingShow = false;
 
-void setPower(bool power) {
-    digitalWrite(relayPin, power ? HIGH : LOW);
-}
+microLed<stripsOrder, pins, stripCount, data> led;
 
 void setup() {
     pinMode(relayPin, OUTPUT);
-    add_leds_at<0, data>();
-
-    setPower(false);
+    digitalWrite(relayPin, LOW);
+    add_leds_at<0, data, strips, pins>();
     uart::begin(baudRate);
-
     uart::write(1);
 }
 
@@ -69,7 +67,7 @@ uint8_t readNext() {
 }
 
 void readPower() {
-    setPower(readNext() != 0);
+    digitalWrite(relayPin, readNext() == 0 ? LOW : HIGH);
 }
 
 void readData() {
@@ -78,17 +76,9 @@ void readData() {
     pendingShow = true;
 }
 
-void fastShow() {
-    CLEDController *pCur = CLEDController::head();
-    while(pCur) {
-        pCur->showLeds();
-        pCur = pCur->next();
-    }
-}
-
 void readPing() {
     if(pendingShow)
-        fastShow();
+        led.show();
     pendingShow = false;
     uart::write(0); // pong hehe
 }
