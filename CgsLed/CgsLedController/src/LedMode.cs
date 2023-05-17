@@ -25,7 +25,7 @@ public abstract class LedMode {
     public abstract void StopMode();
 
     public void Update() {
-        writer.Write1((byte)DataType.RawData);
+        writer.Write1((byte)DataType.Data);
         Frame();
     }
 

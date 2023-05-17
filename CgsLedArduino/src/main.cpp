@@ -1,60 +1,65 @@
 #define NO_CORRECTION 1
 #define NO_CLOCK_CORRECTION 0
 
+// register keyword isnt a thing in c++17 so we remove it
+#define register
+
 #include <Arduino.h>
 #include <FastLED.h>
 
-enum class DataType : uint8_t {
-    None,
-    Power,
-    RawData,
-    Ping
-};
+// --- SETTINGS ---
 
 constexpr uint8_t relayPin = 3;
 
-constexpr uint8_t pin0 = 5;
-constexpr size_t ledCount0 = 177;
-constexpr size_t halfLedCount0 = ledCount0 % 2 == 0 ? ledCount0 / 2 : ledCount0 / 2 + 1;
-constexpr size_t start0 = 0;
-constexpr size_t end0 = start0 + ledCount0 - 1;
-
-constexpr uint8_t pin1 = 6;
-constexpr size_t ledCount1 = 82;
-constexpr size_t halfLedCount1 = ledCount1 % 2 == 0 ? ledCount1 / 2 : ledCount1 / 2 + 1;
-constexpr size_t start1 = end0 + 1;
-constexpr size_t end1 = start1 + ledCount1 - 1;
-
-constexpr uint8_t pin2 = 9;
-constexpr size_t ledCount2 = 30;
-constexpr size_t halfLedCount2 = ledCount2 % 2 == 0 ? ledCount2 / 2 : ledCount2 / 2 + 1;
-constexpr size_t start2 = end1 + 1;
-
-constexpr size_t totalLedCount = ledCount0 + ledCount1 + ledCount2;
-constexpr size_t totalDataCount = totalLedCount * 3;
+template<uint8_t DATA_PIN>
+using strip_type = WS2812B<DATA_PIN, GRB>;
+constexpr size_t stripCount = 3;
+constexpr uint8_t ledPins[stripCount] = { 5, 6, 9 };
+constexpr size_t ledCounts[stripCount] = { 177, 82, 30 };
 
 constexpr int32_t baudRate = 1000000;
-constexpr int32_t dataTimeout = 7000; // ms
 
-bool power = false;
-CRGB leds[totalLedCount];
+// ----------------
+
+// compile-time stuff collapse these
+template<typename T, size_t Size>
+constexpr T arraySum(const T (&arr)[Size]) {
+    T ret = 0;
+    for(size_t i = 0; i < Size; ++i)
+        ret += arr[i];
+    return ret;
+}
+constexpr size_t totalDataCount = arraySum(ledCounts) * sizeof(CRGB);
+template<size_t Index, uint8_t* Data>
+struct add_leds_at {
+    constexpr add_leds_at() {
+        size_t ledStart = 0;
+        for(size_t i = 0; i < Index; ++i)
+            ledStart += ledCounts[i];
+        FastLED.addLeds<strip_type, ledPins[Index]>(reinterpret_cast<CRGB*>(Data), ledStart, ledCounts[Index]);
+        if constexpr (Index + 1 < stripCount)
+            add_leds_at<Index + 1, Data>();
+    }
+};
+
+enum class DataType : uint8_t {
+    Power,
+    Data,
+    Ping
+};
+
+uint8_t data[totalDataCount];
 bool pendingShow = false;
 
-void setPower(bool newPower) {
-    power = newPower;
-    if(!power)
-        digitalWrite(relayPin, LOW);
-    else
-        digitalWrite(relayPin, HIGH);
+void setPower(bool power) {
+    digitalWrite(relayPin, power ? HIGH : LOW);
 }
 
 void setup() {
     pinMode(relayPin, OUTPUT);
-    FastLED.addLeds<WS2812B, pin0, GRB>(leds, 0, ledCount0);
-    FastLED.addLeds<WS2812B, pin1, GRB>(leds, ledCount0, ledCount1);
-    FastLED.addLeds<WS2812B, pin2, GRB>(leds, ledCount0 + ledCount1, ledCount2);
+    add_leds_at<0, data>();
 
-    setPower(power);
+    setPower(false);
     Serial.begin(baudRate);
 
     // reset any pending data
@@ -66,11 +71,6 @@ void setup() {
     Serial.write(1);
 }
 
-DataType dataType = DataType::None;
-void endPacket() {
-    dataType = DataType::None;
-}
-
 uint8_t readNext() {
     while(true) {
         int dataInt = Serial.read();
@@ -80,16 +80,12 @@ uint8_t readNext() {
 }
 
 void readPower() {
-    uint8_t data = readNext();
-    setPower(data > 0);
+    setPower(readNext() > 0);
 }
 
-void readRawData() {
-    auto rawData = reinterpret_cast<uint8_t*>(leds);
-    for(size_t i = 0; i < totalDataCount; i++) {
-        uint8_t data = readNext();
-        rawData[i] = data;
-    }
+void readData() {
+    for(size_t i = 0; i < totalDataCount; i++)
+        data[i] = readNext();
     pendingShow = true;
 }
 
@@ -97,26 +93,19 @@ void readPing() {
     if(pendingShow)
         FastLED.show();
     pendingShow = false;
-    Serial.write(0); // pong
+    Serial.write(0); // pong hehe
 }
 
-void tryReadSerial() {
+void loop() {
     int dataInt = Serial.read();
     if(dataInt < 0)
         return;
-    dataType = static_cast<DataType>(dataInt);
-    switch(dataType) {
-        case DataType::None: break;
+    switch(static_cast<DataType>(dataInt)) {
         case DataType::Power: readPower();
             break;
-        case DataType::RawData: readRawData();
+        case DataType::Data: readData();
             break;
         case DataType::Ping: readPing();
             break;
     }
-    endPacket();
-}
-
-void loop() {
-    tryReadSerial();
 }
