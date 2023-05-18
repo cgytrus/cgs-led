@@ -10,7 +10,7 @@ namespace CgsLedConsole;
 
 internal static class Program {
     private const string DefaultPortName = "COM2";
-    private const int DefaultBaudRate = 1000000;
+    private const int DefaultBaudRate = 2000000;
 
     private static BinaryWriter _writer = null!;
     private static readonly CommandNode commands = new("", new CommandNode[] {

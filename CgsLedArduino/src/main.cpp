@@ -14,8 +14,6 @@ constexpr size_t stripCount = 3;
 // have to be sorted by led count in descending order!
 constexpr led_data strips[stripCount] = { led_data(5, 177), led_data(6, 82), led_data(9, 30) };
 
-constexpr int32_t baudRate = 1000000;
-
 // ----------------
 
 // compile-time stuff collapse these
@@ -57,7 +55,7 @@ void setup() {
     pinMode(relayPin, OUTPUT);
     digitalWrite(relayPin, LOW);
     add_leds_at<0, data, strips, pins>();
-    uart::begin(baudRate);
+    uart::begin();
     uart::write(1);
 }
 

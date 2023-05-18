@@ -20,7 +20,7 @@ namespace CgsLedService;
 
 internal static class Program {
     private const string DefaultPortName = "COM2";
-    private const int DefaultBaudRate = 1000000;
+    private const int DefaultBaudRate = 2000000;
 
     private static readonly string configDir =
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
