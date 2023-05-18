@@ -9,7 +9,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         int sampleCount = 16384) :
         MusicMode<Configuration>.Configuration(period, volume, colors);
 
-    protected override bool mono => true;
+    protected override bool forceMono => true;
 
     private List<float>? _samples;
     private List<int>? _sampleCounts;
@@ -56,7 +56,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
 
     protected override void Frame() {
         lock(_samplesLock) {
-            if(_samples is null || values is null)
+            if(_samples is null || hues is null || values is null)
                 return;
         }
 
@@ -71,6 +71,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
                     float bin = MoreMath.Lerp(_samples[index] / GetSampleCountAt(index),
                         _samples[nextIndex] / GetSampleCountAt(nextIndex), progress - index);
                     bin = MathF.Max(MathF.Min(bin, 1f), 0f);
+                    hues[ledStart + i] = bin;
                     values[ledStart + i] = bin;
                 }
             }

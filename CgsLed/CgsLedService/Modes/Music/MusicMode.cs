@@ -19,7 +19,9 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     private WasapiLoopbackCapture? _capture;
 
-    protected abstract bool mono { get; }
+    protected abstract bool forceMono { get; }
+
+    protected float[]? hues { get; private set; }
     protected float[]? values { get; private set; }
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
@@ -33,6 +35,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     protected override void Main() {
         _stopwatch.Restart();
+        hues = new float[writer.totalLedCount];
         values = new float[writer.totalLedCount];
         _capture = new WasapiLoopbackCapture();
         int blockAlign = _capture.WaveFormat.BlockAlign;
@@ -55,18 +58,18 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
             }
         }
 
-        _capture.DataAvailable += mono ? OnDataMono : OnData;
+        _capture.DataAvailable += forceMono ? OnDataMono : OnData;
         _capture.StartRecording();
     }
 
     protected abstract void AddSample(float sample, int channel);
 
     protected override void Frame() {
-        if(values is null)
+        if(hues is null || values is null)
             return;
         float time = (float)_stopwatch.Elapsed.TotalSeconds;
         for(int i = 0; i < writer.totalLedCount; i++)
-            config.colors.WritePixel(writer, time, values[i]);
+            config.colors.WritePixel(writer, time, hues[i], values[i]);
     }
 
     public void Dispose() {

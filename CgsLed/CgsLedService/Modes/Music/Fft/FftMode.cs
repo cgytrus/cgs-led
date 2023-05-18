@@ -11,7 +11,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
         bool mirror = true) :
         MusicMode<Configuration>.Configuration(period, volume, colors);
 
-    protected override bool mono => true;
+    protected override bool forceMono => true;
 
     private FftEffect? _fft;
 
@@ -60,7 +60,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
 
     // ReSharper disable once CognitiveComplexity
     protected override void Frame() {
-        if(_rawFft is null || values is null)
+        if(_rawFft is null || hues is null || values is null)
             return;
 
         _fftReady = false;
@@ -71,6 +71,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
             int ledStart = writer.ledStarts[strip];
             for(int i = 0; i < ledCount; i++) {
                 if(_fftAddCounter == 0) {
+                    hues[ledStart + i] = 0f;
                     values[ledStart + i] = 0f;
                     continue;
                 }
@@ -79,9 +80,12 @@ public class FftMode : MusicMode<FftMode.Configuration> {
                 float bin = FftEffect.GetBin(_rawFft, _fftAddCounter, config.showCount, position);
                 bin = FftEffect.ProcessBin(bin, config.noiseCut);
                 bin = MathF.Max(MathF.Min(bin, 1f), 0f);
+                hues[ledStart + i] = bin;
                 values[ledStart + i] = bin;
-                if(config.mirror)
-                    values[ledStart + fullLedCount - i - 1] = bin;
+                if(!config.mirror)
+                    continue;
+                hues[ledStart + fullLedCount - i - 1] = bin;
+                values[ledStart + fullLedCount - i - 1] = bin;
             }
         }
 

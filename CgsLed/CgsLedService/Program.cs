@@ -13,6 +13,7 @@ using CgsLedService.Modes.Ambilight;
 using CgsLedService.Modes.Fire;
 using CgsLedService.Modes.Music;
 using CgsLedService.Modes.Music.Fft;
+using CgsLedService.Modes.Music.Vu;
 using CgsLedService.Modes.Music.Waveform;
 using CgsLedService.Modes.StandBy;
 
@@ -44,6 +45,7 @@ internal static class Program {
         { "fire", new FireMode(new LedMode.Configuration(TimeSpan.Zero)) },
         { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, new MusicColors())) },
         { "waveform", new WaveformMode(new WaveformMode.Configuration(TimeSpan.Zero, 100f / 50f, new MusicColors())) },
+        { "vu", new VuMode(new VuMode.Configuration(TimeSpan.Zero, 100f / 50f, new MusicColors())) },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration(TimeSpan.Zero)) }
     };
 

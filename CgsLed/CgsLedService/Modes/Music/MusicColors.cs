@@ -8,6 +8,6 @@ public readonly record struct MusicColors(
     float hueRange = 120f,
     float saturation = 0.7f) {
     public MusicColors() : this(true) { }
-    public void WritePixel(LedWriter writer, float time, float x) =>
-        writer.WriteHsv((time * hueSpeed + x * hueRange) % 360f, saturation, x, gammaCorrection);
+    public void WritePixel(LedWriter writer, float time, float x, float v) =>
+        writer.WriteHsv((time * hueSpeed + x * hueRange) % 360f, saturation, v, gammaCorrection);
 }
