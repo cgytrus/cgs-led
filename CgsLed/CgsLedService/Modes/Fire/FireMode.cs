@@ -21,7 +21,7 @@ public class FireMode : LedMode {
         _stopwatch.Restart();
     }
 
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         float time = (float)_stopwatch.Elapsed.TotalSeconds * 0.8f;
         for(int i = 0; i < writer.totalLedCount; i++) {
             float valueNoise = Perlin.Get(i * 0.25f, 0f, time);

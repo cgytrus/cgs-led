@@ -64,7 +64,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     protected abstract void AddSample(float sample, int channel);
 
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         if(hues is null || values is null)
             return;
         float time = (float)_stopwatch.Elapsed.TotalSeconds;

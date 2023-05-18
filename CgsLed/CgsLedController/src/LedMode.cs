@@ -24,14 +24,14 @@ public abstract class LedMode {
 
     public abstract void StopMode();
 
-    public void Update() {
+    public void Update(float deltaTime) {
         writer.Write1((byte)DataType.Data);
-        Frame();
+        Frame(deltaTime);
     }
 
     protected abstract void Main();
 
-    protected abstract void Frame();
+    protected abstract void Frame(float deltaTime);
 }
 
 [PublicAPI]

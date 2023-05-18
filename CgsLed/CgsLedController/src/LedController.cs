@@ -41,6 +41,7 @@ public class LedController {
     }
 
     private void Update() {
+        float lastDeltaTime = (float)_timer.Elapsed.TotalSeconds;
         _timer.Restart();
 
         _updateLock = true;
@@ -53,7 +54,7 @@ public class LedController {
         }
 
         if(mode?.running is true)
-            mode.Update();
+            mode.Update(lastDeltaTime);
         _writer.Send();
         if(_stopping)
             _writer.Close();

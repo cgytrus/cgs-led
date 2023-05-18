@@ -59,7 +59,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
     }
 
     // ReSharper disable once CognitiveComplexity
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         if(_rawFft is null || hues is null || values is null)
             return;
 
@@ -89,7 +89,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
             }
         }
 
-        base.Frame();
+        base.Frame(deltaTime);
 
         _newFrame = true;
         _fftReady = true;

@@ -21,7 +21,7 @@ public class StandByMode : LedMode {
         _stopwatch.Restart();
     }
 
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         for(int i = 0; i < writer.totalLedCount; i++) {
             byte offset =
                 (byte)MathF.Min(MathF.Max(MathF.Sin((_stopwatch.ElapsedMilliseconds + i * 100) / 1000f) * 40f, 0f),

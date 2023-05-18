@@ -134,7 +134,7 @@ public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
     private static int GetApproxDownscaleLevel(int from, int to) => (int)MathF.Round(MathF.Sqrt((float)from / to));
 
     // ReSharper disable once CognitiveComplexity
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         if(_screenCapture is null) {
             Console.WriteLine("wtf");
             return;

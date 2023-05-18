@@ -54,7 +54,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         _sampleCounts[index]++;
     }
 
-    protected override void Frame() {
+    protected override void Frame(float deltaTime) {
         lock(_samplesLock) {
             if(_samples is null || hues is null || values is null)
                 return;
@@ -77,6 +77,6 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
             }
         }
 
-        base.Frame();
+        base.Frame(deltaTime);
     }
 }
