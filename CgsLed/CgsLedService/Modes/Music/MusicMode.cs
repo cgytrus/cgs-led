@@ -35,9 +35,16 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         values = new float[writer.totalLedCount];
         _capture = new WasapiLoopbackCapture();
         int blockAlign = _capture.WaveFormat.BlockAlign;
+        int channels = _capture.WaveFormat.Channels;
+        int channelSize = blockAlign / channels;
         _capture.DataAvailable += (_, args) => {
-            for(int i = 0; i < args.BytesRecorded; i += blockAlign)
-                AddSample(BitConverter.ToSingle(args.Buffer, i) * config.volume);
+            for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
+                float total = 0f;
+                for(int j = 0; j < blockAlign; j += channelSize)
+                    total += BitConverter.ToSingle(args.Buffer, i + j) * config.volume;
+                total /= channels;
+                AddSample(total);
+            }
         };
         _capture.StartRecording();
     }
