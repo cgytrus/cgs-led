@@ -138,51 +138,206 @@ public:
     }
 
     template<size_t pin0>
-    __attribute__((optimize("unroll-loops")))
+    //__attribute__((optimize("unroll-loops")))
     static inline void sendRaw(uint8_t x) {
-        for(size_t i = 0; i < 8; ++i) {
+        //for(size_t i = 0; i < 8; ++i) {
             asm volatile
             (
             "ST X, %[SET_H_0]          \n\t" // 2c
             "SBRS %[DATA_0], 7         \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
-            "NOP                       \n\t" // 1c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_0_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_0_%=     \n\t" // 2c
             "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_1_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_1_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_2_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_2_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_3_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_3_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_4_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_4_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_5_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_5_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_6_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_6_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LDI r20, 3                \n\t" // 1c
+            "_DELAY_LOOP_7_%=:         \n\t"
+            "DEC r20                   \n\t" // 1c
+            "BRNE _DELAY_LOOP_7_%=     \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             :
             : "x" (pins[pin0]._dat_port),
               [DATA_0] "r" (x),
               [SET_H_0] "r" (pins[pin0]._mask_h),
               [SET_L_0] "r" (pins[pin0]._mask_l)
+            : "r20"
             );
-        }
+        //}
     }
 
     template<size_t pin0, size_t pin1>
-    __attribute__((optimize("unroll-loops")))
+    //__attribute__((optimize("unroll-loops")))
     static inline void sendRaw(uint8_t x, uint8_t y) {
-        for(size_t i = 0; i < 8; ++i) {
+        //for(size_t i = 0; i < 8; ++i) {
             asm volatile
             (
             "ST X, %[SET_H_0]          \n\t" // 2c
             "SBRS %[DATA_0], 7         \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
-            //"NOP                       \n\t" // 1c
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
-            //"NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
-            //"NOP                       \n\t" // 1c
-            //"NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
             "LSL %[DATA_1]             \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
@@ -196,6 +351,6 @@ public:
               [SET_L_0] "r" (pins[pin0]._mask_l),
               [SET_L_1] "r" (pins[pin1]._mask_l)
             );
-        }
+        //}
     }
 };
