@@ -23,7 +23,7 @@ struct led_data {
 };
 
 struct pin_data {
-    size_t start, size;
+    size_t start, end;
     uint8_t pin;
     volatile uint8_t* _dat_port;
     uint8_t _dat_mask, _mask_h, _mask_l;
@@ -32,8 +32,8 @@ struct pin_data {
 
     pin_data(uint8_t pin, size_t start, size_t size) {
         this->pin = pin;
-        this->size = size;
         this->start = start;
+        this->end = start + size;
         _dat_mask = digitalPinToBitMask(pin);
         _dat_port = portOutputRegister(digitalPinToPort(pin));
         *portModeRegister(digitalPinToPort(pin)) |= _dat_mask;
@@ -57,51 +57,144 @@ public:
 
         for(size_t i = 0; i < count; i++)
             pins[i].update();
-        for(size_t i = 0; i < count; i++) {
-            pin_data pin = pins[i];
-            for(size_t j = 0; j < pin.size; j += 3) {
-                if constexpr (order == M_order::ORDER_RGB) {
-                    sendRaw(data[pin.start + j]);
-                    sendRaw(data[pin.start + j + 1]);
-                    sendRaw(data[pin.start + j + 2]);
-                }
-                else if constexpr (order == M_order::ORDER_GRB) {
-                    sendRaw(data[pin.start + j + 1]);
-                    sendRaw(data[pin.start + j]);
-                    sendRaw(data[pin.start + j + 2]);
-                }
-            }
+
+        // TODO: implement counts other than 3
+        pin_data pin0 = pins[0];
+        pin_data pin1 = pins[1];
+        pin_data pin2 = pins[2];
+        size_t i0 = pin0.start;
+        for(size_t i2 = pin2.start; i2 < pin2.end; i2 += 3) {
+            send<0, 2>(i0, i2);
+            i0 += 3;
         }
+        for(; i0 < pin0.end; i0 += 3)
+            send<0>(i0);
+        for(size_t i1 = pin1.start; i1 < pin1.end; i1 += 3)
+            send<1>(i1);
+        //for(; i1 < pin1.end; i1 += 3) {
+        //    send<0, 1>(i0, i1);
+        //    i0 += 3;
+        //}
+        //for(; i2 < pin2.end; i2 += 3)
+        //    send<2>(i2);
 
         SREG = sregSave;
     }
 
-    // tick = 0.0625us
+    // cycle = 0.0625us
+    // 0 = 0.25+0.7 = 5+12
+    // 1 = 0.65+0.3 = 12+5
 
+    // proper timings (5-12/12-5)
+    /*
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "SBRC %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+    */
+
+    template<size_t pin0>
+    static inline void send(size_t i0) {
+        if constexpr (order == M_order::ORDER_RGB) {
+            sendRaw<pin0>(data[i0]);
+            sendRaw<pin0>(data[i0 + 1]);
+            sendRaw<pin0>(data[i0 + 2]);
+        }
+        else if constexpr (order == M_order::ORDER_GRB) {
+            sendRaw<pin0>(data[i0 + 1]);
+            sendRaw<pin0>(data[i0]);
+            sendRaw<pin0>(data[i0 + 2]);
+        }
+    }
+
+    template<size_t pin0, size_t pin1>
+    static inline void send(size_t i0, size_t i1) {
+        if constexpr (order == M_order::ORDER_RGB) {
+            sendRaw<pin0, pin1>(data[i0], data[i1]);
+            sendRaw<pin0, pin1>(data[i0 + 1], data[i1 + 1]);
+            sendRaw<pin0, pin1>(data[i0 + 2], data[i1 + 2]);
+        }
+        else if constexpr (order == M_order::ORDER_GRB) {
+            sendRaw<pin0, pin1>(data[i0 + 1], data[i1 + 1]);
+            sendRaw<pin0, pin1>(data[i0], data[i1]);
+            sendRaw<pin0, pin1>(data[i0 + 2], data[i1 + 2]);
+        }
+    }
+
+    template<size_t pin0>
     __attribute__((optimize("unroll-loops")))
     static inline void sendRaw(uint8_t x) {
         for(size_t i = 0; i < 8; ++i) {
             asm volatile
             (
-            "ST X, %[SET_H]   \n\t"
-            "SBRS %[DATA], 7  \n\t"
-            "ST X, %[SET_L]   \n\t"
-            "LSL  %[DATA]     \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "NOP              \n\t"
-            "ST X, %[SET_L]   \n\t"
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
             :
-            :[DATA] "r" (x),
-            [SET_H] "r" (pins[0]._mask_h),
-            [SET_L] "r" (pins[0]._mask_l),
-            "x" (pins[0]._dat_port)
+            : "x" (pins[pin0]._dat_port),
+              [DATA_0] "r" (x),
+              [SET_H_0] "r" (pins[pin0]._mask_h),
+              [SET_L_0] "r" (pins[pin0]._mask_l)
+            );
+        }
+    }
+
+    template<size_t pin0, size_t pin1>
+    __attribute__((optimize("unroll-loops")))
+    static inline void sendRaw(uint8_t x, uint8_t y) {
+        for(size_t i = 0; i < 8; ++i) {
+            asm volatile
+            (
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            //"NOP                       \n\t" // 1c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            //"NOP                       \n\t" // 1c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            //"NOP                       \n\t" // 1c
+            //"NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            :
+            : "x" (pins[pin0]._dat_port),
+              "z" (pins[pin1]._dat_port),
+              [DATA_0] "r" (x),
+              [DATA_1] "r" (y),
+              [SET_H_0] "r" (pins[pin0]._mask_h),
+              [SET_H_1] "r" (pins[pin1]._mask_h),
+              [SET_L_0] "r" (pins[pin0]._mask_l),
+              [SET_L_1] "r" (pins[pin1]._mask_l)
             );
         }
     }
