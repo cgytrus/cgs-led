@@ -39,7 +39,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
         _fft.running = true;
     }
 
-    protected override void AddSample(float sample, int channel) => _fft?.AddSample(sample);
+    protected override void AddSample(float sample, int channel, TimeSpan time) => _fft?.AddSample(sample);
 
     private void UpdateFft(IReadOnlyList<float> fft) {
         while(!_fftReady) { }

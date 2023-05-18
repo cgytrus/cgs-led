@@ -41,20 +41,25 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         int blockAlign = _capture.WaveFormat.BlockAlign;
         int channels = _capture.WaveFormat.Channels;
         int channelSize = blockAlign / channels;
+        float sampleRate = _capture.WaveFormat.SampleRate;
 
         void OnData(object? _, WaveInEventArgs args) {
+            TimeSpan time = this.time;
             for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
                 for(int j = 0; j < channels; j++)
-                    AddSample(BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume, j);
+                    AddSample(BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume, j, time);
+                time += TimeSpan.FromSeconds(1f / sampleRate);
             }
         }
         void OnDataMono(object? _, WaveInEventArgs args) {
+            TimeSpan time = this.time;
             for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
                 float total = 0f;
                 for(int j = 0; j < channels; j++)
                     total += BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume;
                 total /= channels;
-                AddSample(total, 0);
+                AddSample(total, 0, time);
+                time += TimeSpan.FromSeconds(1f / sampleRate);
             }
         }
 
@@ -62,7 +67,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         _capture.StartRecording();
     }
 
-    protected abstract void AddSample(float sample, int channel);
+    protected abstract void AddSample(float sample, int channel, TimeSpan time);
 
     protected override void Frame(float deltaTime) {
         if(hues is null || values is null)

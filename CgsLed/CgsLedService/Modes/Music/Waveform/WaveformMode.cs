@@ -5,14 +5,15 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         TimeSpan period,
         float volume,
         MusicColors colors,
-        int bufferSize = 128,
-        int sampleCount = 16384) :
+        int bufferSize = 48000,
+        int displayCount = 80) :
         MusicMode<Configuration>.Configuration(period, volume, colors);
 
     protected override bool forceMono => true;
 
-    private List<float>? _samples;
-    private List<int>? _sampleCounts;
+    private record struct Sample(float sum, int count, TimeSpan time) { public float value => sum / count; }
+    private List<Sample>? _samples;
+    private int _displayTail;
 
     private readonly object _samplesLock = new();
 
@@ -20,56 +21,53 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
 
     protected override void Main() {
         lock(_samplesLock) {
-            _samples = new List<float>(config.bufferSize);
-            _sampleCounts = new List<int>(config.bufferSize);
+            _samples = new List<Sample>(config.bufferSize);
             for(int i = 0; i < config.bufferSize; i++)
-                _samples.Add(0f);
+                _samples.Add(new Sample(0f, 0, TimeSpan.Zero));
+            _displayTail = _samples.Count;
         }
         base.Main();
     }
 
-    protected override void AddSample(float sample, int channel) {
+    protected override void AddSample(float sample, int channel, TimeSpan time) {
         lock(_samplesLock) {
-            if(_samples is null || _sampleCounts is null)
+            if(_samples is null)
                 return;
             while(_samples.Count > config.bufferSize) {
                 _samples.RemoveAt(0);
-                _sampleCounts.RemoveAt(0);
+                _displayTail--;
             }
             sample = Math.Abs(sample);
-            if(GetSampleCountAt(_samples.Count - 1) >= config.sampleCount / config.bufferSize)
-                _samples.Add(sample);
-            else
-                _samples[^1] += sample;
-            IncSampleCountAt(_samples.Count - 1);
+            if(_samples[^1].count >= config.displayCount)
+                _samples.Add(new Sample(sample, 1, time));
+            else {
+                Sample s = _samples[^1];
+                s.sum += sample;
+                s.count++;
+                _samples[^1] = s;
+            }
         }
-    }
-    private int GetSampleCountAt(int index) => _sampleCounts is null ? 0 :
-        index >= _sampleCounts.Count ? 0 : _sampleCounts[index];
-    private void IncSampleCountAt(int index) {
-        if(_sampleCounts is null)
-            return;
-        while(index >= _sampleCounts.Count)
-            _sampleCounts.Add(0);
-        _sampleCounts[index]++;
     }
 
     protected override void Frame(float deltaTime) {
         lock(_samplesLock) {
             if(_samples is null || hues is null || values is null)
                 return;
+            while(_displayTail < _samples.Count && time >= _samples[Math.Max(_displayTail, 0)].time)
+                _displayTail++;
+            //Console.WriteLine($"{time} {(_displayTail >= _samples.Count ? time : _samples[Math.Max(_displayTail, 0)].time)} {_displayTail}");
         }
+        int displayTail = _displayTail;
 
         for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
             int ledCount = writer.ledCounts[strip];
             int ledStart = writer.ledStarts[strip];
             lock(_samplesLock) {
                 for(int i = 0; i < ledCount; i++) {
-                    float progress = (float)i / ledCount * _samples.Count;
-                    int index = (int)progress;
+                    float progress = (float)i / ledCount * config.displayCount;
+                    int index = Math.Max(displayTail - config.displayCount, 0) + (int)progress;
                     int nextIndex = (index + 1) % _samples.Count;
-                    float bin = MoreMath.Lerp(_samples[index] / GetSampleCountAt(index),
-                        _samples[nextIndex] / GetSampleCountAt(nextIndex), progress - index);
+                    float bin = MoreMath.Lerp(_samples[index].value, _samples[nextIndex].value, progress - index);
                     bin = MathF.Max(MathF.Min(bin, 1f), 0f);
                     hues[ledStart + i] = bin;
                     values[ledStart + i] = bin;

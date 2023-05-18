@@ -17,7 +17,7 @@ public class VuMode : MusicMode<VuMode.Configuration> {
 
     public VuMode(Configuration config) : base(config) { }
 
-    protected override void AddSample(float sample, int channel) {
+    protected override void AddSample(float sample, int channel, TimeSpan time) {
         if(_samples[channel] >= config.sampleCount) {
             float display = MoreMath.SampleToUnitDb(MathF.Sqrt(_samples[channel] / _sampleCounts[channel]));
             _display[channel] = display;

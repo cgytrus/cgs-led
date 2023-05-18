@@ -1,4 +1,6 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics;
+
+using JetBrains.Annotations;
 
 namespace CgsLedController;
 
@@ -14,11 +16,15 @@ public abstract class LedMode {
     protected LedMode(Configuration config) => genericConfig = config;
 
     public abstract bool running { get; }
+    public TimeSpan time => _stopwatch.Elapsed;
+
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     protected LedWriter writer { get; private set; } = null!;
 
     public void Start(LedWriter writer) {
         this.writer = writer;
+        _stopwatch.Restart();
         Main();
     }
 
