@@ -9,6 +9,8 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         int sampleCount = 16384) :
         MusicMode<Configuration>.Configuration(period, volume, colors);
 
+    protected override bool mono => true;
+
     private List<float>? _samples;
     private List<int>? _sampleCounts;
 
@@ -26,7 +28,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         base.Main();
     }
 
-    protected override void AddSample(float sample) {
+    protected override void AddSample(float sample, int channel) {
         lock(_samplesLock) {
             if(_samples is null || _sampleCounts is null)
                 return;

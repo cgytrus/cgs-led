@@ -11,6 +11,8 @@ public class FftMode : MusicMode<FftMode.Configuration> {
         bool mirror = true) :
         MusicMode<Configuration>.Configuration(period, volume, colors);
 
+    protected override bool mono => true;
+
     private FftEffect? _fft;
 
     private float[]? _rawFft;
@@ -37,7 +39,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
         _fft.running = true;
     }
 
-    protected override void AddSample(float sample) => _fft?.AddSample(sample);
+    protected override void AddSample(float sample, int channel) => _fft?.AddSample(sample);
 
     private void UpdateFft(IReadOnlyList<float> fft) {
         while(!_fftReady) { }

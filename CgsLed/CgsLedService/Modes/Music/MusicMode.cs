@@ -19,6 +19,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     private WasapiLoopbackCapture? _capture;
 
+    protected abstract bool mono { get; }
     protected float[]? values { get; private set; }
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
@@ -37,19 +38,28 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         int blockAlign = _capture.WaveFormat.BlockAlign;
         int channels = _capture.WaveFormat.Channels;
         int channelSize = blockAlign / channels;
-        _capture.DataAvailable += (_, args) => {
+
+        void OnData(object? _, WaveInEventArgs args) {
+            for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
+                for(int j = 0; j < channels; j++)
+                    AddSample(BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume, j);
+            }
+        }
+        void OnDataMono(object? _, WaveInEventArgs args) {
             for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
                 float total = 0f;
-                for(int j = 0; j < blockAlign; j += channelSize)
-                    total += BitConverter.ToSingle(args.Buffer, i + j) * config.volume;
+                for(int j = 0; j < channels; j++)
+                    total += BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume;
                 total /= channels;
-                AddSample(total);
+                AddSample(total, 0);
             }
-        };
+        }
+
+        _capture.DataAvailable += mono ? OnDataMono : OnData;
         _capture.StartRecording();
     }
 
-    protected abstract void AddSample(float sample);
+    protected abstract void AddSample(float sample, int channel);
 
     protected override void Frame() {
         if(values is null)
