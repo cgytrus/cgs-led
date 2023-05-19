@@ -157,8 +157,10 @@ public class LedWriter {
         }
 
         float hh = h;
-        if(hh >= 360f)
-            hh = 0f;
+        while(hh >= 360f)
+            hh -= 360f;
+        while(hh < 0f)
+            hh += 360f;
         hh /= 60f;
         int i = (int)hh;
         float ff = hh - i;

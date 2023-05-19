@@ -48,7 +48,7 @@ internal static class Program {
         {
             "vu",
             new VuMode(new VuMode.Configuration(TimeSpan.Zero, 100f / 50f, "Signal", true,
-                new MusicColors(hueSpeed: 0f, hueOffset: 120f, hueRange: -120f)))
+                new MusicColors(hueSpeed: 0f, hueOffset: 120f, rightHueOffset: 0f, hueRange: -120f)))
         },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration(TimeSpan.Zero)) }
     };

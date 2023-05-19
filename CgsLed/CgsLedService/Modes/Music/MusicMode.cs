@@ -81,8 +81,14 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         if(hues is null || values is null)
             return;
         float time = (float)_stopwatch.Elapsed.TotalSeconds;
-        for(int i = 0; i < writer.totalLedCount; i++)
-            config.colors.WritePixel(writer, time, hues[i], values[i]);
+        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
+            int ledCount = writer.ledCounts[strip];
+            int ledStart = writer.ledStarts[strip];
+            for(int i = 0; i < ledCount; i++) {
+                float x = (float)i / ledCount;
+                config.colors.WritePixel(writer, time, x, hues[ledStart + i], values[ledStart + i]);
+            }
+        }
     }
 
     public void Dispose() {

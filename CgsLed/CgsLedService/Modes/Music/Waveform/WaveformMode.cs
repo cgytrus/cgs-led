@@ -57,9 +57,8 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
                 return;
             while(_displayTail < _samples.Count && time >= _samples[Math.Max(_displayTail, 0)].time)
                 _displayTail++;
-            //Console.WriteLine($"{time} {(_displayTail >= _samples.Count ? time : _samples[Math.Max(_displayTail, 0)].time)} {_displayTail}");
         }
-        int displayTail = _displayTail;
+        int displayTail = Math.Min(_displayTail, _samples.Count);
 
         for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
             int ledCount = writer.ledCounts[strip];
