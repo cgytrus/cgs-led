@@ -3,22 +3,10 @@
 namespace CgsLedService.Modes.Fire;
 
 public class FireMode : LedMode {
-    public override bool running => _running;
-    private bool _running;
-
-    public FireMode(Configuration config) : base(config) { }
-
-    public override void StopMode() {
-        _running = false;
-    }
-
-    protected override void Main() {
-        _running = true;
-    }
-
-    protected override void Frame(float deltaTime) {
+    public override void Update() { }
+    public override void Draw(int strip) {
         float time = (float)this.time.TotalSeconds * 0.8f;
-        for(int i = 0; i < writer.totalLedCount; i++) {
+        for(int i = 0; i < writer.ledCounts[strip]; i++) {
             float valueNoise = Perlin.Get(i * 0.25f, 0f, time);
             float hueNoise = Perlin.Get(i * 0.1f, time * 0.5f, 0f);
             writer.WriteHsv(hueNoise * 60f, 1f, valueNoise, true);

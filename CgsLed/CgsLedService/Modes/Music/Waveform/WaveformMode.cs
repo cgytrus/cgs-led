@@ -2,20 +2,20 @@
 
 public class WaveformMode : MusicMode<WaveformMode.Configuration> {
     public new record Configuration(
-        TimeSpan period,
         float volume,
         string? process,
         bool excludeProcess,
         MusicColors colors,
         int bufferSize = 48000,
         int displayCount = 80) :
-        MusicMode<Configuration>.Configuration(period, volume, process, excludeProcess, colors);
+        MusicMode<Configuration>.Configuration(volume, process, excludeProcess, colors);
 
     protected override bool forceMono => true;
 
     private record struct Sample(float sum, int count, TimeSpan time) { public float value => sum / count; }
     private List<Sample>? _samples;
     private int _displayTail;
+    private int _showDisplayTail;
 
     private readonly object _samplesLock = new();
 
@@ -51,31 +51,32 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         }
     }
 
-    protected override void Frame(float deltaTime) {
+    public override void Update() {
         lock(_samplesLock) {
-            if(_samples is null || hues is null || values is null)
+            if(_samples is null)
                 return;
             while(_displayTail < _samples.Count && time >= _samples[Math.Max(_displayTail, 0)].time)
                 _displayTail++;
+            _showDisplayTail = Math.Min(_displayTail, _samples.Count);
         }
-        int displayTail = Math.Min(_displayTail, _samples.Count);
+    }
+    public override void Draw(int strip) {
+        if(_samples is null || hues is null || values is null)
+            return;
 
-        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
-            int ledCount = writer.ledCounts[strip];
-            int ledStart = writer.ledStarts[strip];
-            lock(_samplesLock) {
-                for(int i = 0; i < ledCount; i++) {
-                    float progress = (float)i / ledCount * config.displayCount;
-                    int index = Math.Max(displayTail - config.displayCount, 0) + (int)progress;
-                    int nextIndex = (index + 1) % _samples.Count;
-                    float bin = MoreMath.Lerp(_samples[index].value, _samples[nextIndex].value, progress - index);
-                    bin = MathF.Max(MathF.Min(bin, 1f), 0f);
-                    hues[ledStart + i] = bin;
-                    values[ledStart + i] = bin;
-                }
+        int ledCount = writer.ledCounts[strip];
+        lock(_samplesLock) {
+            for(int i = 0; i < ledCount; i++) {
+                float progress = (float)i / ledCount * config.displayCount;
+                int index = Math.Max(_showDisplayTail - config.displayCount, 0) + (int)progress;
+                int nextIndex = (index + 1) % _samples.Count;
+                float bin = MoreMath.Lerp(_samples[index].value, _samples[nextIndex].value, progress - index);
+                bin = MathF.Max(MathF.Min(bin, 1f), 0f);
+                hues[i] = bin;
+                values[i] = bin;
             }
         }
 
-        base.Frame(deltaTime);
+        base.Draw(strip);
     }
 }

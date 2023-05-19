@@ -6,6 +6,5 @@ public enum MessageType : byte {
     Quit,
     SetPowerOff,
     SetMode,
-    ReloadConfig,
-    ReloadModeConfig
+    Reload
 }

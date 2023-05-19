@@ -7,15 +7,7 @@ using ScreenCapture.NET;
 namespace CgsLedService.Modes.Ambilight;
 
 public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
-    public new record Configuration(
-        TimeSpan period,
-        int screen = 0,
-        string? window = null) :
-        LedMode.Configuration(period);
-
-    public override bool running => _running;
-
-    private bool _running;
+    public record Configuration(int screen = 0, string? window = null);
 
     private IScreenCapture? _screenCapture;
     private readonly CaptureZone[] _captures = new CaptureZone[3];
@@ -23,7 +15,6 @@ public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
     public AmbilightMode(Configuration config) : base(config) { }
 
     public override void StopMode() {
-        _running = false;
         _screenCapture?.Dispose();
         _screenCapture = null;
     }
@@ -127,53 +118,49 @@ public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
         _captures[2] = _screenCapture.RegisterCaptureZone(captureX, captureY + captureHeight - bottomHeight,
             captureWidth, bottomHeight,
             GetApproxDownscaleLevel(captureWidth, writer.ledCounts[2]));
-
-        _running = true;
     }
 
     private static int GetApproxDownscaleLevel(int from, int to) => (int)MathF.Round(MathF.Sqrt((float)from / to));
 
-    // ReSharper disable once CognitiveComplexity
-    protected override void Frame(float deltaTime) {
+    public override void Update() {
         if(_screenCapture is null) {
             Console.WriteLine("wtf");
             return;
         }
-
         _screenCapture.CaptureScreen();
+    }
 
-        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
-            int pixelCount = writer.ledCounts[strip];
+    public override void Draw(int strip) {
+        int pixelCount = writer.ledCounts[strip];
 
-            CaptureZone capture = _captures[strip];
-            lock(capture.Buffer) {
-                Span<byte> data = new(capture.Buffer);
-                float width = (float)capture.Width / pixelCount;
+        CaptureZone capture = _captures[strip];
+        lock(capture.Buffer) {
+            Span<byte> data = new(capture.Buffer);
+            float width = (float)capture.Width / pixelCount;
 
-                int stride = capture.Stride;
-                for(int i = 0; i < pixelCount; i++) {
-                    uint avgR = 0;
-                    uint avgG = 0;
-                    uint avgB = 0;
+            int stride = capture.Stride;
+            for(int i = 0; i < pixelCount; i++) {
+                uint avgR = 0;
+                uint avgG = 0;
+                uint avgB = 0;
 
-                    float startX = width * i;
-                    uint avgCount = 0;
-                    for(float x = startX; x < startX + width; x++) {
-                        for(int y = 0; y < capture.Height; y++) {
-                            int index = y * stride + (int)x * capture.BytesPerPixel;
-                            avgR += data[index + 2];
-                            avgG += data[index + 1];
-                            avgB += data[index];
-                            avgCount++;
-                        }
+                float startX = width * i;
+                uint avgCount = 0;
+                for(float x = startX; x < startX + width; x++) {
+                    for(int y = 0; y < capture.Height; y++) {
+                        int index = y * stride + (int)x * capture.BytesPerPixel;
+                        avgR += data[index + 2];
+                        avgG += data[index + 1];
+                        avgB += data[index];
+                        avgCount++;
                     }
-
-                    avgR /= avgCount;
-                    avgG /= avgCount;
-                    avgB /= avgCount;
-
-                    writer.WriteRgb((byte)avgR, (byte)avgG, (byte)avgB, true);
                 }
+
+                avgR /= avgCount;
+                avgG /= avgCount;
+                avgB /= avgCount;
+
+                writer.WriteRgb((byte)avgR, (byte)avgG, (byte)avgB, true);
             }
         }
     }

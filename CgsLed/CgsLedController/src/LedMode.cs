@@ -8,14 +8,6 @@ namespace CgsLedController;
 public abstract class LedMode {
     private const int HeaderSize = 1;
 
-    public record Configuration(TimeSpan period);
-
-    public virtual Type configType => typeof(Configuration);
-    public Configuration genericConfig { get; set; }
-
-    protected LedMode(Configuration config) => genericConfig = config;
-
-    public abstract bool running { get; }
     public TimeSpan time => _stopwatch.Elapsed;
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
@@ -28,25 +20,16 @@ public abstract class LedMode {
         Main();
     }
 
-    public abstract void StopMode();
+    public virtual void StopMode() { }
 
-    public void Update(float deltaTime) {
-        writer.Write1((byte)DataType.Data);
-        Frame(deltaTime);
-    }
+    protected virtual void Main() { }
 
-    protected abstract void Main();
-
-    protected abstract void Frame(float deltaTime);
+    public abstract void Update();
+    public abstract void Draw(int strip);
 }
 
 [PublicAPI]
-public abstract class LedMode<TConfig> : LedMode where TConfig : LedMode.Configuration {
-    public override Type configType => typeof(TConfig);
-    public TConfig config {
-        get => (TConfig)genericConfig;
-        set => genericConfig = value;
-    }
-
-    protected LedMode(TConfig config) : base(config) { }
+public abstract class LedMode<TConfig> : LedMode {
+    public TConfig config { get; set; }
+    protected LedMode(TConfig config) => this.config = config;
 }

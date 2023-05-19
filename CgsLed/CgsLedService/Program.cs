@@ -2,6 +2,7 @@
 using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -41,24 +42,22 @@ internal static class Program {
     private static LedController? _led;
 
     private static readonly IReadOnlyDictionary<string, LedMode> modes = new Dictionary<string, LedMode> {
-        { "standby", new StandByMode(new LedMode.Configuration(TimeSpan.Zero)) },
-        { "fire", new FireMode(new LedMode.Configuration(TimeSpan.Zero)) },
-        { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, "Signal", true, new MusicColors())) },
-        { "waveform", new WaveformMode(new WaveformMode.Configuration(TimeSpan.Zero, 100f / 50f, "Signal", true, new MusicColors())) },
+        { "standby", new StandByMode() },
+        { "fire", new FireMode() },
+        { "fft", new FftMode(new FftMode.Configuration(100f / 8f, "Signal", true, new MusicColors())) },
+        { "waveform", new WaveformMode(new WaveformMode.Configuration(100f / 50f, "Signal", true, new MusicColors())) },
         {
-            "vu",
-            new VuMode(new VuMode.Configuration(TimeSpan.Zero, 100f / 50f, "Signal", true,
-                new MusicColors(hueSpeed: 0f, hueOffset: 120f, rightHueOffset: 0f, hueRange: -120f)))
+            "vu", new VuMode(new VuMode.Configuration(100f / 50f, "Signal", true, new MusicColors(0f, 120f, 0f, -120f)))
         },
-        { "ambilight", new AmbilightMode(new AmbilightMode.Configuration(TimeSpan.Zero)) }
+        { "ambilight", new AmbilightMode(new AmbilightMode.Configuration()) }
     };
 
     private static void Main(string[] args) {
         Start();
-        ReloadConfig();
+        Reload();
         foreach(string mode in modes.Keys)
-            ReloadModeConfig(mode);
-        SetMode("fire");
+            ReloadMode(mode);
+        SetMode("fire", "all");
 
         IPEndPoint ip = new(IPAddress.Loopback, 42069);
         TcpListener listener = new(ip);
@@ -103,13 +102,10 @@ internal static class Program {
                 SetPowerOff();
                 break;
             case MessageType.SetMode:
-                SetMode(reader.ReadString());
+                SetMode(reader.ReadString(), reader.ReadString());
                 break;
-            case MessageType.ReloadConfig:
-                ReloadConfig();
-                break;
-            case MessageType.ReloadModeConfig:
-                ReloadModeConfig(reader.ReadString());
+            case MessageType.Reload:
+                Reload();
                 break;
             default:
                 Console.WriteLine("Unknown message");
@@ -147,14 +143,21 @@ internal static class Program {
         _led.SetPowerOff();
     }
 
-    private static void SetMode(string mode) {
+    private static void SetMode(string mode, string strip) {
         if(!CheckRunning() || !modes.TryGetValue(mode, out LedMode? ledMode))
             return;
-        Console.WriteLine($"Setting mode to {mode.ToLower()}");
-        _led.SetMode(ledMode);
+        if(strip == "all") {
+            Console.WriteLine($"Setting mode to {mode.ToLower()}");
+            _led.SetMode(ledMode);
+            return;
+        }
+        if(!int.TryParse(strip, out int i))
+            return;
+        Console.WriteLine($"Setting strip {i} mode to {mode.ToLower()}");
+        _led.SetMode(i, ledMode);
     }
 
-    private static void ReloadConfig() {
+    private static void Reload() {
         if(!CheckRunning())
             return;
         Console.WriteLine("Reloading main config");
@@ -167,24 +170,32 @@ internal static class Program {
             Directory.CreateDirectory(configDir);
             File.WriteAllText(configPath, JsonSerializer.Serialize(_led.config, jsonOpts));
         }
+        foreach(string mode in modes.Keys)
+            ReloadMode(mode);
+        Console.WriteLine("Restarting modes");
+        _led.Reload();
     }
 
-    private static void ReloadModeConfig(string mode) {
+    private static void ReloadMode(string mode) {
         if(!modes.TryGetValue(mode, out LedMode? ledMode))
             return;
         Console.WriteLine($"Reloading {mode} config");
+
+        Type type = ledMode.GetType();
+        if(!type.IsGenericType)
+            return;
+
+        Type configType = type.GetGenericArguments()[0];
+        PropertyInfo? config = type.GetProperty(nameof(LedMode<LedMode>.config));
+        if(config is null)
+            return;
+
         string configPath = Path.Combine(modesConfigDir, $"{mode}.json");
-        if(File.Exists(configPath)) {
-            ledMode.genericConfig =
-                (LedMode.Configuration?)JsonSerializer.Deserialize(File.ReadAllText(configPath), ledMode.configType,
-                    jsonOpts) ?? ledMode.genericConfig;
-            if(_led is not null && _led.mode == ledMode)
-                _led.SetMode(ledMode);
-        }
+        if(File.Exists(configPath))
+            config.SetValue(ledMode, JsonSerializer.Deserialize(File.ReadAllText(configPath), configType, jsonOpts));
         else {
             Directory.CreateDirectory(modesConfigDir);
-            File.WriteAllText(configPath,
-                JsonSerializer.Serialize(ledMode.genericConfig, ledMode.configType, jsonOpts));
+            File.WriteAllText(configPath, JsonSerializer.Serialize(config.GetValue(ledMode), configType, jsonOpts));
         }
     }
 }

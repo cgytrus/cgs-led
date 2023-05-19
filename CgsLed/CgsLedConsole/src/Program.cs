@@ -35,14 +35,9 @@ internal static class Program {
         new("mode", args => {
             _writer.Write((byte)MessageType.SetMode);
             _writer.Write(args[0]);
+            _writer.Write(args[1]);
         }),
-        new("cfg", new CommandNode[] {
-            new("svc", _ => _writer.Write((byte)MessageType.ReloadConfig)),
-            new("mode", args => {
-                _writer.Write((byte)MessageType.ReloadModeConfig);
-                _writer.Write(args[0]);
-            })
-        })
+        new("reload", _ => _writer.Write((byte)MessageType.Reload))
     });
 
     private static void Main(string[] args) {

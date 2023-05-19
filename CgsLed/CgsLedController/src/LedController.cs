@@ -7,17 +7,16 @@ namespace CgsLedController;
 public class LedController {
     public record Configuration(float brightness, bool showFps);
     public Configuration config { get; set; }
-    public LedMode? mode { get; private set; }
 
     private bool _stopping;
 
-    private LedMode? _nextMode;
-    private bool _changeMode;
+    private readonly HashSet<LedMode> _modes = new();
+    private readonly LedMode?[] _modeMap;
+    private readonly List<Action> _schedule = new();
+    private readonly object _scheduleLock = new();
 
     private readonly LedWriter _writer;
-    private bool _updateLock = true;
 
-    private readonly Stopwatch _timer = Stopwatch.StartNew();
     private readonly Stopwatch _fpsTimer = Stopwatch.StartNew();
     private int _frames;
     private const float FpsFrequency = 1f;
@@ -25,6 +24,7 @@ public class LedController {
     public LedController(Configuration config, SerialPort port, IReadOnlyList<int> ledCounts) {
         this.config = config;
         _writer = new LedWriter(this, port, ledCounts);
+        _modeMap = new LedMode?[ledCounts.Count];
     }
 
     public void Start() {
@@ -36,37 +36,46 @@ public class LedController {
     private void MainThread() {
         while(_writer.isOpen)
             Update();
-        mode?.StopMode();
+        foreach(LedMode mode in _modes)
+            mode.StopMode();
         _stopping = false;
     }
 
     private void Update() {
-        float lastDeltaTime = (float)_timer.Elapsed.TotalSeconds;
-        _timer.Restart();
-
-        _updateLock = true;
-
-        if(_changeMode) {
-            _changeMode = false;
-            mode?.StopMode();
-            _nextMode?.Start(_writer);
-            mode = _nextMode;
+        lock(_scheduleLock) {
+            foreach(Action action in _schedule)
+                action();
+            _schedule.Clear();
         }
 
-        if(mode?.running is true)
-            mode.Update(lastDeltaTime);
+        if(_modes.Count != 0) {
+            foreach(LedMode mode in _modes)
+                mode.Update();
+            _writer.Write1((byte)DataType.Data);
+            for(int strip = 0; strip < _modeMap.Length; strip++)
+                DrawStrip(strip);
+        }
+
         _writer.Send();
         if(_stopping)
             _writer.Close();
 
-        _updateLock = false;
+        if(_modes.Count == 0)
+            Thread.Sleep(1000);
 
-        TimeSpan toWait =
-            (mode?.running is not true ? TimeSpan.FromSeconds(1f) : mode.genericConfig.period) -
-            _timer.Elapsed;
-        if(toWait.Ticks > 0)
-            Thread.Sleep(toWait);
+        UpdateFps();
+    }
 
+    private void DrawStrip(int strip) {
+        LedMode? mode = _modeMap[strip];
+        if(mode is null)
+            for(int i = 0; i < _writer.ledCounts[strip]; i++)
+                _writer.Write3(0, 0, 0);
+        else
+            mode.Draw(strip);
+    }
+
+    private void UpdateFps() {
         if(!config.showFps)
             return;
         _frames++;
@@ -85,20 +94,49 @@ public class LedController {
     }
 
     public void SetPowerOff() {
-        WaitForLock();
-        _nextMode = null;
-        _changeMode = true;
-        _writer.Write2((byte)DataType.Power, 0);
+        ScheduleAction(() => {
+            for(int i = 0; i < _modeMap.Length; i++)
+                _modeMap[i] = null;
+            UpdateModes();
+            _writer.Write2((byte)DataType.Power, 0);
+        });
     }
 
     public void SetMode(LedMode mode) {
-        WaitForLock();
-        _nextMode = mode;
-        _changeMode = true;
-        _writer.Write2((byte)DataType.Power, 1);
+        ScheduleAction(() => {
+            for(int i = 0; i < _modeMap.Length; i++)
+                _modeMap[i] = mode;
+            UpdateModes();
+            _writer.Write2((byte)DataType.Power, 1);
+        });
     }
 
-    private void WaitForLock() {
-        while(_updateLock) { }
+    public void SetMode(int strip, LedMode mode) {
+        ScheduleAction(() => {
+            _modeMap[strip] = mode;
+            UpdateModes();
+            _writer.Write2((byte)DataType.Power, 1);
+        });
+    }
+
+    public void Reload() {
+        ScheduleAction(UpdateModes);
+    }
+
+    private void UpdateModes() {
+        foreach(LedMode mode in _modes)
+            mode.StopMode();
+        _modes.Clear();
+        foreach(LedMode? mode in _modeMap)
+            if(mode is not null)
+                _modes.Add(mode);
+        foreach(LedMode mode in _modes)
+            mode.Start(_writer);
+    }
+
+    private void ScheduleAction(Action action) {
+        lock(_scheduleLock) {
+            _schedule.Add(action);
+        }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-using CgsLedController;
+﻿using CgsLedController;
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -9,15 +7,11 @@ namespace CgsLedService.Modes.Music;
 
 public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     where TConfig : MusicMode<TConfig>.Configuration {
-    public new record Configuration(
-        TimeSpan period,
+    public record Configuration(
         float volume,
         string? process,
         bool excludeProcess,
-        MusicColors colors) :
-        LedMode.Configuration(period);
-
-    public override bool running => _capture?.CaptureState == CaptureState.Capturing;
+        MusicColors colors);
 
     private WasapiCapture? _capture;
 
@@ -25,7 +19,6 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     protected float[]? hues { get; private set; }
     protected float[]? values { get; private set; }
-    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     protected MusicMode(TConfig config) : base(config) { }
 
@@ -36,9 +29,8 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     }
 
     protected override void Main() {
-        _stopwatch.Restart();
-        hues = new float[writer.totalLedCount];
-        values = new float[writer.totalLedCount];
+        hues = new float[writer.ledCounts.Max()];
+        values = new float[hues.Length];
         _capture = config.process is null ? new WasapiLoopbackCapture() :
             new WasapiProcessLoopbackCapture(config.process,
                 config.excludeProcess ? AppCaptureThingy.ProcessLoopbackMode.ExcludeTargetProcessTree :
@@ -77,17 +69,14 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
 
     protected abstract void AddSample(float sample, int channel, TimeSpan time);
 
-    protected override void Frame(float deltaTime) {
+    public override void Draw(int strip) {
         if(hues is null || values is null)
             return;
-        float time = (float)_stopwatch.Elapsed.TotalSeconds;
-        for(byte strip = 0; strip < writer.ledCounts.Count; strip++) {
-            int ledCount = writer.ledCounts[strip];
-            int ledStart = writer.ledStarts[strip];
-            for(int i = 0; i < ledCount; i++) {
-                float x = (float)i / ledCount;
-                config.colors.WritePixel(writer, time, x, hues[ledStart + i], values[ledStart + i]);
-            }
+        float time = (float)this.time.TotalSeconds;
+        int ledCount = writer.ledCounts[strip];
+        for(int i = 0; i < ledCount; i++) {
+            float x = (float)i / ledCount;
+            config.colors.WritePixel(writer, time, x, hues[i], values[i]);
         }
     }
 
