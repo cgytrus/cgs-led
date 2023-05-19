@@ -44,10 +44,10 @@ internal static class Program {
     private static readonly IReadOnlyDictionary<string, LedMode> modes = new Dictionary<string, LedMode> {
         { "standby", new StandByMode() },
         { "fire", new FireMode() },
-        { "fft", new FftMode(new FftMode.Configuration(100f / 8f, "Signal", true, new MusicColors())) },
-        { "waveform", new WaveformMode(new WaveformMode.Configuration(100f / 50f, "Signal", true, new MusicColors())) },
+        { "fft", new FftMode(new FftMode.Configuration(100f / 8f, "chrome", false, new MusicColors())) },
+        { "waveform", new WaveformMode(new WaveformMode.Configuration(100f / 50f, "chrome", false, new MusicColors())) },
         {
-            "vu", new VuMode(new VuMode.Configuration(100f / 50f, "Signal", true, new MusicColors(0f, 120f, 0f, -120f)))
+            "vu", new VuMode(new VuMode.Configuration(100f / 50f, "chrome", false, new MusicColors(0f, 120f, 0f, -120f)))
         },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration()) }
     };
@@ -55,8 +55,6 @@ internal static class Program {
     private static void Main(string[] args) {
         Start();
         Reload();
-        foreach(string mode in modes.Keys)
-            ReloadMode(mode);
         SetMode("fire", "all");
 
         IPEndPoint ip = new(IPAddress.Loopback, 42069);
@@ -181,8 +179,8 @@ internal static class Program {
             return;
         Console.WriteLine($"Reloading {mode} config");
 
-        Type type = ledMode.GetType();
-        if(!type.IsGenericType)
+        Type? type = ledMode.GetType().BaseType;
+        if(type is null || !type.IsGenericType)
             return;
 
         Type configType = type.GetGenericArguments()[0];
