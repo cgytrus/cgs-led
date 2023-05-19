@@ -43,9 +43,13 @@ internal static class Program {
     private static readonly IReadOnlyDictionary<string, LedMode> modes = new Dictionary<string, LedMode> {
         { "standby", new StandByMode(new LedMode.Configuration(TimeSpan.Zero)) },
         { "fire", new FireMode(new LedMode.Configuration(TimeSpan.Zero)) },
-        { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, new MusicColors())) },
-        { "waveform", new WaveformMode(new WaveformMode.Configuration(TimeSpan.Zero, 100f / 50f, new MusicColors())) },
-        { "vu", new VuMode(new VuMode.Configuration(TimeSpan.Zero, 100f / 50f, new MusicColors())) },
+        { "fft", new FftMode(new FftMode.Configuration(TimeSpan.Zero, 100f / 8f, "Signal", true, new MusicColors())) },
+        { "waveform", new WaveformMode(new WaveformMode.Configuration(TimeSpan.Zero, 100f / 50f, "Signal", true, new MusicColors())) },
+        {
+            "vu",
+            new VuMode(new VuMode.Configuration(TimeSpan.Zero, 100f / 50f, "Signal", true,
+                new MusicColors(hueSpeed: 0f, hueOffset: 120f, hueRange: -120f)))
+        },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration(TimeSpan.Zero)) }
     };
 

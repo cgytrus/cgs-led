@@ -12,12 +12,14 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     public new record Configuration(
         TimeSpan period,
         float volume,
+        string? process,
+        bool excludeProcess,
         MusicColors colors) :
         LedMode.Configuration(period);
 
     public override bool running => _capture?.CaptureState == CaptureState.Capturing;
 
-    private WasapiLoopbackCapture? _capture;
+    private WasapiCapture? _capture;
 
     protected abstract bool forceMono { get; }
 
@@ -37,7 +39,11 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         _stopwatch.Restart();
         hues = new float[writer.totalLedCount];
         values = new float[writer.totalLedCount];
-        _capture = new WasapiLoopbackCapture();
+        _capture = config.process is null ? new WasapiLoopbackCapture() :
+            new WasapiProcessLoopbackCapture(config.process,
+                config.excludeProcess ? AppCaptureThingy.ProcessLoopbackMode.ExcludeTargetProcessTree :
+                    AppCaptureThingy.ProcessLoopbackMode.IncludeTargetProcessTree);
+
         int blockAlign = _capture.WaveFormat.BlockAlign;
         int channels = _capture.WaveFormat.Channels;
         int channelSize = blockAlign / channels;
@@ -64,6 +70,8 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         }
 
         _capture.DataAvailable += forceMono ? OnDataMono : OnData;
+        if(_capture is WasapiProcessLoopbackCapture processCapture)
+            processCapture.InitializeProcessCaptureDevice();
         _capture.StartRecording();
     }
 

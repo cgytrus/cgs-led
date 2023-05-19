@@ -4,12 +4,14 @@ public class FftMode : MusicMode<FftMode.Configuration> {
     public new record Configuration(
         TimeSpan period,
         float volume,
+        string? process,
+        bool excludeProcess,
         MusicColors colors,
         int showStart = 0,
         int showCount = 56,
         float noiseCut = 0.25f,
         bool mirror = true) :
-        MusicMode<Configuration>.Configuration(period, volume, colors);
+        MusicMode<Configuration>.Configuration(period, volume, process, excludeProcess, colors);
 
     protected override bool forceMono => true;
 

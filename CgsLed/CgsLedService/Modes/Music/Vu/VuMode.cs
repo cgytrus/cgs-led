@@ -4,10 +4,12 @@ public class VuMode : MusicMode<VuMode.Configuration> {
     public new record Configuration(
         TimeSpan period,
         float volume,
+        string? process,
+        bool excludeProcess,
         MusicColors colors,
         int sampleCount = 16,
         float falloffSpeed = 1f) :
-        MusicMode<Configuration>.Configuration(period, volume, colors);
+        MusicMode<Configuration>.Configuration(period, volume, process, excludeProcess, colors);
 
     protected override bool forceMono => false;
 
