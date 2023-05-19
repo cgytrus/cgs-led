@@ -12,7 +12,7 @@ constexpr uint8_t relayPin = 3;
 constexpr M_order stripsOrder = M_order::ORDER_GRB;
 constexpr size_t stripCount = 3;
 // have to be sorted by led count in descending order!
-constexpr led_data strips[stripCount] = { led_data(5, 177), led_data(6, 82), led_data(9, 30) };
+constexpr led_data strips[stripCount] = { led_data(5, 177), led_data(9, 82), led_data(6, 30) };
 
 // ----------------
 
@@ -57,6 +57,7 @@ void setup() {
     add_leds_at<0, data, strips, pins>();
     uart::begin();
     uart::write(1);
+    cli();
 }
 
 uint8_t readNext() {

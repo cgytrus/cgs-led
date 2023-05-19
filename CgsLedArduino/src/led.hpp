@@ -1,11 +1,3 @@
-/*
-    GitHub: https://github.com/GyverLibs/microLED
-    AlexGyver & Egor 'Nich1con' Zaharov, alex@alexgyver.ru
-    https://alexgyver.ru/
-    MIT License
-
-    modified by ConfiG
-*/
 #pragma once
 
 #include <Arduino.h>
@@ -52,9 +44,6 @@ public:
 
     __attribute__((optimize("unroll-loops")))
     static inline void show() {
-        uint8_t sregSave = SREG;
-        cli();
-
         for(size_t i = 0; i < count; i++)
             pins[i].update();
 
@@ -63,22 +52,14 @@ public:
         pin_data pin1 = pins[1];
         pin_data pin2 = pins[2];
         size_t i0 = pin0.start;
-        for(size_t i2 = pin2.start; i2 < pin2.end; i2 += 3) {
-            send<0, 2>(i0, i2);
+        for(size_t i = pin1.start; i < pin1.end; i += 3) {
+            send<0, 1>(i0, i);
             i0 += 3;
         }
         for(; i0 < pin0.end; i0 += 3)
             send<0>(i0);
-        for(size_t i1 = pin1.start; i1 < pin1.end; i1 += 3)
-            send<1>(i1);
-        //for(; i1 < pin1.end; i1 += 3) {
-        //    send<0, 1>(i0, i1);
-        //    i0 += 3;
-        //}
-        //for(; i2 < pin2.end; i2 += 3)
-        //    send<2>(i2);
-
-        SREG = sregSave;
+        for(size_t i = pin2.start; i < pin2.end; i += 3)
+            send<2>(i);
     }
 
     // cycle = 0.0625us
@@ -252,6 +233,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -264,6 +246,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -276,6 +259,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -288,6 +272,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -300,6 +285,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -312,6 +298,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -324,6 +311,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -336,6 +324,7 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
