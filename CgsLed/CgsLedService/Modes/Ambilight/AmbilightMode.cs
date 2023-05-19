@@ -118,6 +118,9 @@ public partial class AmbilightMode : LedMode<AmbilightMode.Configuration> {
         _captures[2] = _screenCapture.RegisterCaptureZone(captureX, captureY + captureHeight - bottomHeight,
             captureWidth, bottomHeight,
             GetApproxDownscaleLevel(captureWidth, writer.ledCounts[2]));
+
+        if(_screenCapture is DX11ScreenCapture dx11ScreenCapture)
+            dx11ScreenCapture.Timeout = 0;
     }
 
     private static int GetApproxDownscaleLevel(int from, int to) => (int)MathF.Round(MathF.Sqrt((float)from / to));
