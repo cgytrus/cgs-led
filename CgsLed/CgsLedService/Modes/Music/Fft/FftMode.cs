@@ -2,15 +2,12 @@
 
 public class FftMode : MusicMode<FftMode.Configuration> {
     public new record Configuration(
-        float volume,
-        string? process,
-        bool excludeProcess,
-        MusicColors colors,
+        MusicConfig music,
         int showStart = 0,
         int showCount = 56,
         float noiseCut = 0.25f,
         bool mirror = true) :
-        MusicMode<Configuration>.Configuration(volume, process, excludeProcess, colors);
+        MusicMode<FftMode.Configuration>.Configuration(music);
 
     protected override bool forceMono => true;
 

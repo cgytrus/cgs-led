@@ -2,13 +2,10 @@
 
 public class WaveformMode : MusicMode<WaveformMode.Configuration> {
     public new record Configuration(
-        float volume,
-        string? process,
-        bool excludeProcess,
-        MusicColors colors,
+        MusicConfig music,
         int bufferSize = 48000,
         int displayCount = 80) :
-        MusicMode<Configuration>.Configuration(volume, process, excludeProcess, colors);
+        MusicMode<WaveformMode.Configuration>.Configuration(music);
 
     protected override bool forceMono => true;
 

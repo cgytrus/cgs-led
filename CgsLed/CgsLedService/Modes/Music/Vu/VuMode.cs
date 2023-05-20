@@ -2,13 +2,10 @@
 
 public class VuMode : MusicMode<VuMode.Configuration> {
     public new record Configuration(
-        float volume,
-        string? process,
-        bool excludeProcess,
-        MusicColors colors,
+        MusicConfig music,
         int sampleCount = 16,
         float falloffSpeed = 1f) :
-        MusicMode<Configuration>.Configuration(volume, process, excludeProcess, colors);
+        MusicMode<VuMode.Configuration>.Configuration(music);
 
     protected override bool forceMono => false;
 

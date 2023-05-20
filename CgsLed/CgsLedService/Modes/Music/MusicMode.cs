@@ -7,18 +7,14 @@ namespace CgsLedService.Modes.Music;
 
 public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     where TConfig : MusicMode<TConfig>.Configuration {
-    public record Configuration(
-        float volume,
-        string? process,
-        bool excludeProcess,
-        MusicColors colors);
-
-    private WasapiCapture? _capture;
+    public abstract record Configuration(MusicConfig music);
 
     protected abstract bool forceMono { get; }
 
     protected float[]? hues { get; private set; }
     protected float[]? values { get; private set; }
+
+    private WasapiCapture? _capture;
 
     protected MusicMode(TConfig config) : base(config) { }
 
@@ -31,9 +27,9 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     protected override void Main() {
         hues = new float[writer.ledCounts.Max()];
         values = new float[hues.Length];
-        _capture = config.process is null ? new WasapiLoopbackCapture() :
-            new WasapiProcessLoopbackCapture(config.process,
-                config.excludeProcess ? AppCaptureThingy.ProcessLoopbackMode.ExcludeTargetProcessTree :
+        _capture = config.music.process is null ? new WasapiLoopbackCapture() :
+            new WasapiProcessLoopbackCapture(config.music.process,
+                config.music.excludeProcess ? AppCaptureThingy.ProcessLoopbackMode.ExcludeTargetProcessTree :
                     AppCaptureThingy.ProcessLoopbackMode.IncludeTargetProcessTree);
 
         int blockAlign = _capture.WaveFormat.BlockAlign;
@@ -45,7 +41,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
             TimeSpan time = this.time;
             for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
                 for(int j = 0; j < channels; j++)
-                    AddSample(BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume, j, time);
+                    AddSampleInternal(BitConverter.ToSingle(args.Buffer, i + j * channelSize), j, time);
                 time += TimeSpan.FromSeconds(1f / sampleRate);
             }
         }
@@ -54,9 +50,9 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
             for(int i = 0; i < args.BytesRecorded; i += blockAlign) {
                 float total = 0f;
                 for(int j = 0; j < channels; j++)
-                    total += BitConverter.ToSingle(args.Buffer, i + j * channelSize) * config.volume;
+                    total += BitConverter.ToSingle(args.Buffer, i + j * channelSize);
                 total /= channels;
-                AddSample(total, 0, time);
+                AddSampleInternal(total, 0, time);
                 time += TimeSpan.FromSeconds(1f / sampleRate);
             }
         }
@@ -65,6 +61,10 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         if(_capture is WasapiProcessLoopbackCapture processCapture)
             processCapture.InitializeProcessCaptureDevice();
         _capture.StartRecording();
+    }
+
+    private void AddSampleInternal(float sample, int channel, TimeSpan time) {
+        AddSample(sample, channel, time);
     }
 
     protected abstract void AddSample(float sample, int channel, TimeSpan time);
@@ -76,7 +76,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         int ledCount = writer.ledCounts[strip];
         for(int i = 0; i < ledCount; i++) {
             float x = (float)i / ledCount;
-            config.colors.WritePixel(writer, time, x, hues[i], values[i]);
+            config.music.colors.WritePixel(writer, time, x, hues[i], values[i]);
         }
     }
 
