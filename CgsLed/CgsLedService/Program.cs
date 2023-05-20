@@ -21,8 +21,7 @@ using CgsLedService.Modes.StandBy;
 namespace CgsLedService;
 
 internal static class Program {
-    private const string DefaultPortName = "COM2";
-    private const int DefaultBaudRate = 2000000;
+    private const string PortName = "COM2";
 
     private static readonly string configDir =
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
@@ -87,7 +86,7 @@ internal static class Program {
     private static void ReadMessage(BinaryReader reader) {
         switch((MessageType)reader.ReadByte()) {
             case MessageType.Start:
-                Start(SerialPort.GetPortNames()[reader.ReadByte()], reader.ReadInt32());
+                Start();
                 break;
             case MessageType.Stop:
                 Stop();
@@ -111,9 +110,10 @@ internal static class Program {
         }
     }
 
-    private static void Start(string portName = DefaultPortName, int baudRate = DefaultBaudRate) {
-        Console.WriteLine($"Starting on port {portName} with baud rate {baudRate}");
-        SerialPort port = new(portName, baudRate, Parity.None, 8, StopBits.One);
+    private static void Start() {
+        const int baudRate = 2000000;
+        Console.WriteLine($"Starting on port {PortName} with baud rate {baudRate}");
+        SerialPort port = new(PortName, baudRate, Parity.None, 8, StopBits.One);
         _led = new LedController(new LedController.Configuration(0.25f, false), port, new int[] { 177, 82, 30 });
         _led.Start();
         Console.WriteLine("Ready");
