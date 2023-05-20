@@ -65,7 +65,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         lock(_samplesLock) {
             for(int i = 0; i < ledCount; i++) {
                 float progress = (float)i / ledCount * config.displayCount;
-                int index = Math.Max(_showDisplayTail - config.displayCount, 0) + (int)progress;
+                int index = (Math.Max(_showDisplayTail - config.displayCount, 0) + (int)progress) % _samples.Count;
                 int nextIndex = (index + 1) % _samples.Count;
                 float bin = MoreMath.Lerp(_samples[index].value, _samples[nextIndex].value, progress - index);
                 bin = MathF.Max(MathF.Min(bin, 1f), 0f);
