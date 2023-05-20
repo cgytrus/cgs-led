@@ -40,7 +40,8 @@ internal static class Program {
 
     private static LedController? _led;
 
-    private static readonly IReadOnlyDictionary<string, LedMode> modes = new Dictionary<string, LedMode> {
+    private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
+        { "off", null },
         { "standby", new StandByMode() },
         { "fire", new FireMode() },
         { "fft", new FftMode(new FftMode.Configuration(100f / 8f, "chrome", false, new MusicColors())) },
@@ -95,9 +96,6 @@ internal static class Program {
                 Stop();
                 _running = false;
                 break;
-            case MessageType.SetPowerOff:
-                SetPowerOff();
-                break;
             case MessageType.SetMode:
                 SetMode(reader.ReadString(), reader.ReadString());
                 break;
@@ -132,13 +130,6 @@ internal static class Program {
             return true;
         Console.WriteLine("Not running");
         return false;
-    }
-
-    private static void SetPowerOff() {
-        if(!CheckRunning())
-            return;
-        Console.WriteLine("Powering off");
-        _led.SetPowerOff();
     }
 
     private static void SetMode(string mode, string strip) {
@@ -177,11 +168,12 @@ internal static class Program {
     private static void ReloadMode(string mode) {
         if(!modes.TryGetValue(mode, out LedMode? ledMode))
             return;
-        Console.WriteLine($"Reloading {mode} config");
 
-        Type? type = ledMode.GetType().BaseType;
+        Type? type = ledMode?.GetType().BaseType;
         if(type is null || !type.IsGenericType)
             return;
+
+        Console.WriteLine($"Reloading {mode} config");
 
         Type configType = type.GetGenericArguments()[0];
         PropertyInfo? config = type.GetProperty(nameof(LedMode<LedMode>.config));

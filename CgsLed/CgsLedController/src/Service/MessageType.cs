@@ -4,7 +4,6 @@ public enum MessageType : byte {
     Start,
     Stop,
     Quit,
-    SetPowerOff,
     SetMode,
     Reload
 }

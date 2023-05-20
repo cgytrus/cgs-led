@@ -89,33 +89,22 @@ public class LedController {
 
     public void Stop() {
         _writer.doPing = false;
-        SetPowerOff();
+        SetMode(null);
         _stopping = true;
     }
 
-    public void SetPowerOff() {
-        ScheduleAction(() => {
-            for(int i = 0; i < _modeMap.Length; i++)
-                _modeMap[i] = null;
-            UpdateModes();
-            _writer.Write2((byte)DataType.Power, 0);
-        });
-    }
-
-    public void SetMode(LedMode mode) {
+    public void SetMode(LedMode? mode) {
         ScheduleAction(() => {
             for(int i = 0; i < _modeMap.Length; i++)
                 _modeMap[i] = mode;
             UpdateModes();
-            _writer.Write2((byte)DataType.Power, 1);
         });
     }
 
-    public void SetMode(int strip, LedMode mode) {
+    public void SetMode(int strip, LedMode? mode) {
         ScheduleAction(() => {
             _modeMap[strip] = mode;
             UpdateModes();
-            _writer.Write2((byte)DataType.Power, 1);
         });
     }
 
@@ -132,6 +121,7 @@ public class LedController {
                 _modes.Add(mode);
         foreach(LedMode mode in _modes)
             mode.Start(_writer);
+        _writer.Write2((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
     }
 
     private void ScheduleAction(Action action) {
