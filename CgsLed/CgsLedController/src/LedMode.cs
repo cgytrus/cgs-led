@@ -16,7 +16,6 @@ public abstract class LedMode {
 
     public void Start(LedWriter writer) {
         this.writer = writer;
-        _stopwatch.Restart();
         Main();
     }
 
