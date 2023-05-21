@@ -8,6 +8,8 @@ namespace CgsLedService.Helpers;
 public sealed class AudioCapture : IDisposable {
     public delegate void SampleAddedFunc(float sample, int channel, TimeSpan time);
 
+    public WaveFormat format => _capture?.WaveFormat ?? new WaveFormat(0, 0);
+
     private WasapiCapture? _capture;
     private SampleAddedFunc? _sampleAdded;
     private SampleAddedFunc? _sampleAddedMono;

@@ -7,10 +7,13 @@ namespace CgsLedService.Modes.Waveform;
 public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
     public record Configuration(
         MusicColors colors,
-        int bufferSize = 48000,
-        int displayCount = 80);
+        float bufferSeconds = 1f,
+        float displaySeconds = 0.00182f);
 
     private readonly AudioCapture _capture;
+
+    private int bufferSize => (int)(_capture.format.SampleRate * config.bufferSeconds);
+    private int displayCount => (int)(_capture.format.SampleRate * config.displaySeconds);
 
     private record struct Sample(float sum, int count, TimeSpan time) { public float value => sum / count; }
     private List<Sample>? _samples;
@@ -22,13 +25,13 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
     public WaveformMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
     protected override void Main() {
+        _capture.AddMonoListener(AddSample);
         lock(_samplesLock) {
-            _samples = new List<Sample>(config.bufferSize);
-            for(int i = 0; i < config.bufferSize; i++)
+            _samples = new List<Sample>(bufferSize);
+            for(int i = 0; i < bufferSize; i++)
                 _samples.Add(new Sample(0f, 0, TimeSpan.Zero));
             _displayTail = _samples.Count;
         }
-        _capture.AddMonoListener(AddSample);
     }
 
     public override void StopMode() => _capture.RemoveListener(AddSample);
@@ -37,12 +40,12 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
         lock(_samplesLock) {
             if(_samples is null)
                 return;
-            while(_samples.Count > config.bufferSize) {
+            while(_samples.Count > bufferSize) {
                 _samples.RemoveAt(0);
                 _displayTail--;
             }
             sample = Math.Abs(sample);
-            if(_samples[^1].count >= config.displayCount)
+            if(_samples[^1].count >= displayCount)
                 _samples.Add(new Sample(sample, 1, time));
             else {
                 Sample s = _samples[^1];
@@ -73,8 +76,8 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
 
         lock(_samplesLock) {
             for(int i = 0; i < ledCount; i++) {
-                float progress = (float)i / ledCount * config.displayCount;
-                int index = (Math.Max(_showDisplayTail - config.displayCount, 0) + (int)progress) % _samples.Count;
+                float progress = (float)i / ledCount * displayCount;
+                int index = (Math.Max(_showDisplayTail - displayCount, 0) + (int)progress) % _samples.Count;
                 int nextIndex = (index + 1) % _samples.Count;
                 float bin = MoreMath.Lerp(_samples[index].value, _samples[nextIndex].value, progress - index);
                 bin = MathF.Max(MathF.Min(bin, 1f), 0f);
