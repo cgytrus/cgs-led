@@ -20,13 +20,16 @@ using CgsLedService.Modes.Waveform;
 
 namespace CgsLedService;
 
+using ScreenCapture = Helpers.ScreenCapture;
+
 internal static class Program {
     private const string PortName = "COM2";
 
     private static readonly string configDir =
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
     private static readonly string modesConfigDir = Path.Combine(configDir, "modes");
-    private const string ConfigName = "main.json";
+    private const string MainConfigName = "main.json";
+    private const string ScreenCaptureConfigName = "screen.json";
 
     private static readonly JsonSerializerOptions jsonOpts = new(JsonSerializerOptions.Default) {
         AllowTrailingCommas = true,
@@ -38,11 +41,11 @@ internal static class Program {
 
     private static bool _running = true;
 
-    private static IReadOnlyList<int> _ledCounts = new int[] { 177, 82, 30 };
+    private static readonly IReadOnlyList<int> ledCounts = new int[] { 177, 82, 30 };
     private static LedController? _led;
 
     private static readonly AudioCapture audioCapture = new();
-    private static readonly Helpers.ScreenCapture screenCapture = new();
+    private static readonly ScreenCapture screenCapture = new(new ScreenCapture.Configuration(), ledCounts);
 
     private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
         { "off", null },
@@ -51,7 +54,7 @@ internal static class Program {
         { "fft", new FftMode(audioCapture, new FftMode.Configuration(new MusicColors())) },
         { "waveform", new WaveformMode(audioCapture, new WaveformMode.Configuration(new MusicColors())) },
         { "vu", new VuMode(audioCapture, new VuMode.Configuration(new MusicColors(0f, 120f, 0f, -120f))) },
-        { "ambilight", new AmbilightMode(screenCapture, new AmbilightMode.Configuration()) }
+        { "ambilight", new AmbilightMode(screenCapture) }
     };
 
     private static void Main(string[] args) {
@@ -115,7 +118,7 @@ internal static class Program {
         Console.WriteLine($"Starting on port {PortName} with baud rate {baudRate}");
         SerialPort port = new(PortName, baudRate, Parity.None, 8, StopBits.One);
         _led = new LedController(new LedController.Configuration(0.5f, false),
-            new SerialPortLedWriter(_ledCounts, port));
+            new SerialPortLedWriter(ledCounts, port));
         _led.Start();
         Console.WriteLine("Ready");
     }
@@ -152,18 +155,17 @@ internal static class Program {
     private static void Reload() {
         if(!CheckRunning())
             return;
+
         Console.WriteLine("Reloading main config");
-        string configPath = Path.Combine(configDir, ConfigName);
-        if(File.Exists(configPath))
-            _led.config =
-                JsonSerializer.Deserialize<LedController.Configuration>(File.ReadAllText(configPath), jsonOpts) ??
-                _led.config;
-        else {
-            Directory.CreateDirectory(configDir);
-            File.WriteAllText(configPath, JsonSerializer.Serialize(_led.config, jsonOpts));
-        }
+        _led.config = LoadOrSaveConfig(configDir, MainConfigName, _led.config);
+
+        Console.WriteLine("Reloading screen capture config");
+        screenCapture.config = LoadOrSaveConfig(configDir, ScreenCaptureConfigName, screenCapture.config);
+        screenCapture.Reload(ledCounts);
+
         foreach(string mode in modes.Keys)
             ReloadMode(mode);
+
         Console.WriteLine("Restarting modes");
         _led.Reload();
     }
@@ -175,20 +177,27 @@ internal static class Program {
         Type? type = ledMode?.GetType().BaseType;
         if(type is null || !type.IsGenericType)
             return;
-
         Console.WriteLine($"Reloading {mode} config");
-
-        Type configType = type.GetGenericArguments()[0];
         PropertyInfo? config = type.GetProperty(nameof(LedMode<LedMode>.config));
-        if(config is null)
-            return;
+        config?.SetValue(ledMode, LoadOrSaveConfig(modesConfigDir, $"{mode}.json", config.GetValue(ledMode)));
+    }
 
-        string configPath = Path.Combine(modesConfigDir, $"{mode}.json");
+    private static TConfig LoadOrSaveConfig<TConfig>(string dir, string file, TConfig current) {
+        string configPath = Path.Combine(dir, file);
         if(File.Exists(configPath))
-            config.SetValue(ledMode, JsonSerializer.Deserialize(File.ReadAllText(configPath), configType, jsonOpts));
-        else {
-            Directory.CreateDirectory(modesConfigDir);
-            File.WriteAllText(configPath, JsonSerializer.Serialize(config.GetValue(ledMode), configType, jsonOpts));
-        }
+            return JsonSerializer.Deserialize<TConfig>(File.ReadAllText(configPath), jsonOpts) ?? current;
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(configPath, JsonSerializer.Serialize(current, jsonOpts));
+        return current;
+    }
+
+    private static object? LoadOrSaveConfig(string dir, string file, object? current) {
+        string configPath = Path.Combine(dir, file);
+        if(File.Exists(configPath))
+            return JsonSerializer.Deserialize(File.ReadAllText(configPath), current?.GetType() ?? typeof(object),
+                jsonOpts) ?? current;
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(configPath, JsonSerializer.Serialize(current, jsonOpts));
+        return current;
     }
 }

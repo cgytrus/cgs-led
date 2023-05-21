@@ -6,36 +6,19 @@ namespace CgsLedService.Modes.Ambilight;
 
 using ScreenCapture = Helpers.ScreenCapture;
 
-public class AmbilightMode : LedMode<AmbilightMode.Configuration> {
-    public record Configuration(int screen = 0, string? window = null);
-
+public class AmbilightMode : LedMode {
     private readonly ScreenCapture _screenCapture;
-    private readonly List<CaptureZone> _captures = new();
 
-    public AmbilightMode(ScreenCapture screenCapture, Configuration config) : base(config) =>
-        _screenCapture = screenCapture;
-
-    protected override void Main() {
-        ScreenCapture.CaptureInfo info = _screenCapture.GetCaptureInfo(config.screen, config.window);
-
-        int botHeight = info.height / 5;
-        ScreenCapture.CaptureInfo bottomInfo = info with { y = info.y + info.height - botHeight, height = botHeight };
-
-        _captures.Add(_screenCapture.RegisterCaptureZone(info, writer.ledCounts[0]));
-        _captures.Add(_screenCapture.RegisterCaptureZone(info, writer.ledCounts[1]));
-        _captures.Add(_screenCapture.RegisterCaptureZone(bottomInfo, writer.ledCounts[2]));
-    }
-
-    public override void StopMode() {
-        foreach(CaptureZone zone in _captures)
-            _screenCapture.UnregisterCaptureZone(zone);
-    }
+    public AmbilightMode(ScreenCapture screenCapture) => _screenCapture = screenCapture;
 
     public override void Update() => _screenCapture.Update();
     public override void Draw(int strip) {
         int pixelCount = writer.ledCounts[strip];
 
-        CaptureZone capture = _captures[strip];
+        IReadOnlyList<CaptureZone> captures = _screenCapture.captures;
+        CaptureZone capture;
+        lock(_screenCapture.capturesLock)
+            capture = captures[strip];
         lock(capture.Buffer) {
             Span<byte> data = new(capture.Buffer);
             float width = (float)capture.Width / pixelCount;

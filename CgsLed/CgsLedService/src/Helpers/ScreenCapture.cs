@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 using JetBrains.Annotations;
 
@@ -7,15 +8,33 @@ using ScreenCapture.NET;
 namespace CgsLedService.Helpers;
 
 public sealed partial class ScreenCapture : IDisposable {
-    private readonly IScreenCaptureService _screenCaptureService = new DX11ScreenCaptureService();
-    private readonly IScreenCapture[] _screenCaptures;
+    public record Configuration(int screen = 0, string? window = null);
+
+    public Configuration config { get; set; }
+
+    public IReadOnlyList<CaptureZone> captures => _captures;
+    public object capturesLock { get; } = new();
+
+    private IScreenCaptureService _screenCaptureService;
+    private IScreenCapture[] _screenCaptures;
 
     private readonly Dictionary<CaptureZone, IScreenCapture> _captureZones = new();
+    private readonly List<CaptureZone> _captures = new();
     private readonly HashSet<IScreenCapture> _toUpdate = new();
 
     public readonly record struct CaptureInfo(int screen, int x, int y, int width, int height);
 
-    public ScreenCapture() {
+    public ScreenCapture(Configuration config, IReadOnlyList<int> ledCounts) {
+        this.config = config;
+        Reload(ledCounts);
+    }
+
+    [MemberNotNull(nameof(_screenCaptureService), nameof(_screenCaptures))]
+    public void Reload(IReadOnlyList<int> ledCounts) {
+        _screenCaptureService?.Dispose();
+        _captureZones.Clear();
+        _toUpdate.Clear();
+        _screenCaptureService = new DX11ScreenCaptureService();
         IEnumerable<GraphicsCard> graphicsCards = _screenCaptureService.GetGraphicsCards();
         List<Display> displays = _screenCaptureService.GetDisplays(graphicsCards.First()).ToList();
         _screenCaptures = new IScreenCapture[displays.Count];
@@ -27,6 +46,18 @@ public sealed partial class ScreenCapture : IDisposable {
             // set capture timeout to 0 so that it doesn't lag other modes
             if(screenCapture is DX11ScreenCapture dx11ScreenCapture)
                 dx11ScreenCapture.Timeout = 0;
+        }
+
+        ScreenCapture.CaptureInfo info = GetCaptureInfo(config.screen, config.window);
+
+        int botHeight = info.height / 5;
+        ScreenCapture.CaptureInfo bottomInfo = info with { y = info.y + info.height - botHeight, height = botHeight };
+
+        lock(capturesLock) {
+            _captures.Clear();
+            _captures.Add(RegisterCaptureZone(info, ledCounts[0]));
+            _captures.Add(RegisterCaptureZone(info, ledCounts[1]));
+            _captures.Add(RegisterCaptureZone(bottomInfo, ledCounts[2]));
         }
     }
 
@@ -74,7 +105,7 @@ public sealed partial class ScreenCapture : IDisposable {
 
 #endregion
 
-    public CaptureInfo GetCaptureInfo(int screen, string? window) {
+    private CaptureInfo GetCaptureInfo(int screen, string? window) {
         IScreenCapture screenCapture;
 
         nint windowHwnd = window is null ? nint.Zero : FindWindowW(null, window);
@@ -108,19 +139,12 @@ public sealed partial class ScreenCapture : IDisposable {
             Math.Min(rect.bottom - rect.top, screenCapture.Display.Height - captureY));
     }
 
-    public CaptureZone RegisterCaptureZone(CaptureInfo info, int width) {
+    private CaptureZone RegisterCaptureZone(CaptureInfo info, int width) {
         CaptureZone zone = _screenCaptures[info.screen]
             .RegisterCaptureZone(info.x, info.y, info.width, info.height, GetApproxDownscaleLevel(info.width, width));
         _captureZones[zone] = _screenCaptures[info.screen];
         UpdateToUpdate();
         return zone;
-    }
-    public void UnregisterCaptureZone(CaptureZone zone) {
-        if(!_captureZones.TryGetValue(zone, out IScreenCapture? capture))
-            return;
-        capture.UnregisterCaptureZone(zone);
-        _captureZones.Remove(zone);
-        UpdateToUpdate();
     }
 
     private void UpdateToUpdate() {
