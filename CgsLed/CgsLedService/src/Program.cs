@@ -44,6 +44,12 @@ internal static class Program {
     private static readonly IReadOnlyList<int> ledCounts = new int[] { 177, 82, 30 };
     private static LedController? _led;
 
+    private static readonly IReadOnlyDictionary<string, int> aliases = new Dictionary<string, int> {
+        { "window", 0 }, { "win", 0 }, { "w", 0 },
+        { "door", 1 }, { "d", 1 },
+        { "monitor", 2 }, { "mon", 2 }, { "m", 2 }
+    };
+
     private static readonly AudioCapture audioCapture = new();
     private static readonly ScreenCapture screenCapture = new(new ScreenCapture.Configuration(), ledCounts);
 
@@ -57,7 +63,7 @@ internal static class Program {
         { "ambilight", new AmbilightMode(screenCapture) }
     };
 
-    private static void Main(string[] args) {
+    private static void Main() {
         Start();
         Reload();
         SetMode("fire", "all");
@@ -146,7 +152,7 @@ internal static class Program {
             _led.SetMode(ledMode);
             return;
         }
-        if(!int.TryParse(strip, out int i))
+        if(!aliases.TryGetValue(strip, out int i) && !int.TryParse(strip, out i))
             return;
         Console.WriteLine($"Setting strip {i} mode to {mode.ToLower()}");
         _led.SetMode(i, ledMode);
