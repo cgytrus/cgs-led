@@ -1,4 +1,4 @@
-﻿namespace CgsLedController.Service;
+﻿namespace CgsLedServiceTypes;
 
 public enum MessageType : byte {
     Start,

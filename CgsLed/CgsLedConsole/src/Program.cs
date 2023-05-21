@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-using CgsLedController.Service;
+using CgsLedServiceTypes;
 
 namespace CgsLedConsole;
 

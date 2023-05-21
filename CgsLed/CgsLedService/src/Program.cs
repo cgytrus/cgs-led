@@ -8,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using CgsLedController;
-using CgsLedController.Service;
 
 using CgsLedService.Helpers;
 using CgsLedService.Modes.Ambilight;
@@ -17,6 +16,8 @@ using CgsLedService.Modes.Fire;
 using CgsLedService.Modes.StandBy;
 using CgsLedService.Modes.Vu;
 using CgsLedService.Modes.Waveform;
+
+using CgsLedServiceTypes;
 
 namespace CgsLedService;
 
