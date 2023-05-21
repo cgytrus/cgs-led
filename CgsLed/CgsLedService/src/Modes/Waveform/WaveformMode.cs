@@ -8,12 +8,13 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
     public record Configuration(
         MusicColors colors,
         float bufferSeconds = 1f,
-        float displaySeconds = 0.00182f);
+        float displaySeconds = 0.15f,
+        int avgCount = 87);
 
     private readonly AudioCapture _capture;
 
     private int bufferSize => (int)(_capture.format.SampleRate * config.bufferSeconds);
-    private int displayCount => (int)(_capture.format.SampleRate * config.displaySeconds);
+    private int displayCount => (int)(_capture.format.SampleRate * config.displaySeconds / config.avgCount);
 
     private record struct Sample(float sum, int count, TimeSpan time) { public float value => sum / count; }
     private List<Sample>? _samples;
@@ -45,7 +46,7 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
                 _displayTail--;
             }
             sample = Math.Abs(sample);
-            if(_samples[^1].count >= displayCount)
+            if(_samples[^1].count >= config.avgCount)
                 _samples.Add(new Sample(sample, 1, time));
             else {
                 Sample s = _samples[^1];
