@@ -38,9 +38,11 @@ internal static class Program {
 
     private static bool _running = true;
 
+    private static IReadOnlyList<int> _ledCounts = new int[] { 177, 82, 30 };
     private static LedController? _led;
 
     private static readonly AudioCapture audioCapture = new();
+    private static readonly Helpers.ScreenCapture screenCapture = new();
 
     private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
         { "off", null },
@@ -49,7 +51,7 @@ internal static class Program {
         { "fft", new FftMode(audioCapture, new FftMode.Configuration(new MusicColors())) },
         { "waveform", new WaveformMode(audioCapture, new WaveformMode.Configuration(new MusicColors())) },
         { "vu", new VuMode(audioCapture, new VuMode.Configuration(new MusicColors(0f, 120f, 0f, -120f))) },
-        { "ambilight", new AmbilightMode(new AmbilightMode.Configuration()) }
+        { "ambilight", new AmbilightMode(screenCapture, new AmbilightMode.Configuration()) }
     };
 
     private static void Main(string[] args) {
@@ -113,7 +115,7 @@ internal static class Program {
         Console.WriteLine($"Starting on port {PortName} with baud rate {baudRate}");
         SerialPort port = new(PortName, baudRate, Parity.None, 8, StopBits.One);
         _led = new LedController(new LedController.Configuration(0.5f, false),
-            new SerialPortLedWriter(new int[] { 177, 82, 30 }, port));
+            new SerialPortLedWriter(_ledCounts, port));
         _led.Start();
         Console.WriteLine("Ready");
     }
