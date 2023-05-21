@@ -1,15 +1,10 @@
-﻿using System.IO.Ports;
-
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace CgsLedController;
 
 [PublicAPI]
-public class LedWriter {
-    private readonly SerialPort _port;
-    private readonly byte[] _ledData = new byte[1024];
-    private int _totalDataCount;
-
+public abstract class LedWriter {
+    public float brightness { get; set; } = 1f;
     public bool doPing { get; set; } = true;
 
     public IReadOnlyList<int> ledCounts { get; }
@@ -19,16 +14,12 @@ public class LedWriter {
     public IReadOnlyList<int> halfLedCounts { get; }
     public IReadOnlyList<int> halfLedStarts { get; }
 
-    public bool isOpen => _port.IsOpen;
+    public abstract bool isOpen { get; }
 
-    private LedController _controller;
+    private readonly byte[] _ledData = new byte[1024];
+    private int _totalDataCount;
 
-    private bool _canContinue = true;
-
-    public LedWriter(LedController controller, SerialPort port, IReadOnlyList<int> ledCounts) {
-        _port = port;
-        _controller = controller;
-
+    protected LedWriter(IReadOnlyList<int> ledCounts) {
         this.ledCounts = ledCounts;
         halfLedCounts = ledCounts.Select(c => c % 2 == 0 ? c / 2 : c / 2 + 1).ToArray();
         totalLedCount = 0;
@@ -45,50 +36,31 @@ public class LedWriter {
         this.halfLedStarts = halfLedStarts;
     }
 
-    public void Open() {
-        _port.DtrEnable = true;
-        _port.Open();
-        // wait for arduino to reset
-        bool canContinue = false;
-        while(!canContinue) {
-            while(_port.BytesToRead > 0) {
-                if(_port.ReadByte() == 1)
-                    canContinue = true;
-            }
-        }
-    }
-    public void Close() {
-        while(_port.BytesToWrite > 0) { }
-        _port.Close();
-    }
+    public abstract void Open();
+    public abstract void Close();
 
     public void Send() {
         if(doPing)
-            Write1((byte)DataType.Ping);
-        while(_port.BytesToWrite > 0) { }
-        while(doPing && !_canContinue) {
-            while(_port.BytesToRead > 0) {
-                if(_port.ReadByte() == 0)
-                    _canContinue = true;
-            }
-        }
-        _canContinue = false;
-        _port.Write(_ledData, 0, _totalDataCount);
+            Ping();
+        WriteInternal(_ledData, _totalDataCount);
         _totalDataCount = 0;
     }
 
-    public void Write1(byte value) {
+    protected abstract void Ping();
+    protected abstract void WriteInternal(byte[] bytes, int count);
+
+    public void Write(byte value) {
         _ledData[_totalDataCount] = value;
         _totalDataCount++;
     }
 
-    public void Write2(byte a, byte b) {
+    public void Write(byte a, byte b) {
         _ledData[_totalDataCount] = a;
         _ledData[_totalDataCount + 1] = b;
         _totalDataCount += 2;
     }
 
-    public void Write3(byte a, byte b, byte c) {
+    public void Write(byte a, byte b, byte c) {
         _ledData[_totalDataCount] = a;
         _ledData[_totalDataCount + 1] = b;
         _ledData[_totalDataCount + 2] = c;
@@ -139,11 +111,10 @@ public class LedWriter {
             g = gamma8[g];
             b = gamma8[b];
         }
-        float brightness = _controller.config.brightness;
         r = (byte)(r * brightness);
         g = (byte)(g * brightness);
         b = (byte)(b * brightness);
-        Write3(r, g, b);
+        Write(r, g, b);
     }
     public void WriteHsv(float h, float s, float v, bool gamma) {
         float r;

@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.IO.Ports;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 

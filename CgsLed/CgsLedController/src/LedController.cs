@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using System.IO.Ports;
 
 namespace CgsLedController;
 
@@ -21,10 +20,11 @@ public class LedController {
     private int _frames;
     private const float FpsFrequency = 1f;
 
-    public LedController(Configuration config, SerialPort port, IReadOnlyList<int> ledCounts) {
+    public LedController(Configuration config, LedWriter writer) {
         this.config = config;
-        _writer = new LedWriter(this, port, ledCounts);
-        _modeMap = new LedMode?[ledCounts.Count];
+        _writer = writer;
+        _writer.brightness = config.brightness;
+        _modeMap = new LedMode?[writer.ledCounts.Count];
     }
 
     public void Start() {
@@ -51,7 +51,7 @@ public class LedController {
         if(_modes.Count != 0) {
             foreach(LedMode mode in _modes)
                 mode.Update();
-            _writer.Write1((byte)DataType.Data);
+            _writer.Write((byte)DataType.Data);
             for(int strip = 0; strip < _modeMap.Length; strip++)
                 DrawStrip(strip);
         }
@@ -70,7 +70,7 @@ public class LedController {
         LedMode? mode = _modeMap[strip];
         if(mode is null)
             for(int i = 0; i < _writer.ledCounts[strip]; i++)
-                _writer.Write3(0, 0, 0);
+                _writer.Write(0, 0, 0);
         else
             mode.Draw(strip);
     }
@@ -121,7 +121,8 @@ public class LedController {
                 _modes.Add(mode);
         foreach(LedMode mode in _modes)
             mode.Start(_writer);
-        _writer.Write2((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
+        _writer.Write((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
+        _writer.brightness = config.brightness;
     }
 
     private void ScheduleAction(Action action) {
