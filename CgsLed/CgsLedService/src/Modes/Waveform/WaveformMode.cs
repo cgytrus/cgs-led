@@ -1,13 +1,16 @@
-﻿namespace CgsLedService.Modes.Music.Waveform;
+﻿using CgsLedController;
 
-public class WaveformMode : MusicMode<WaveformMode.Configuration> {
-    public new record Configuration(
-        MusicConfig music,
+using CgsLedService.Helpers;
+
+namespace CgsLedService.Modes.Waveform;
+
+public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
+    public record Configuration(
+        MusicColors colors,
         int bufferSize = 48000,
-        int displayCount = 80) :
-        MusicMode<WaveformMode.Configuration>.Configuration(music);
+        int displayCount = 80);
 
-    protected override bool forceMono => true;
+    private readonly AudioCapture _capture;
 
     private record struct Sample(float sum, int count, TimeSpan time) { public float value => sum / count; }
     private List<Sample>? _samples;
@@ -16,7 +19,7 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
 
     private readonly object _samplesLock = new();
 
-    public WaveformMode(Configuration config) : base(config) { }
+    public WaveformMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
     protected override void Main() {
         lock(_samplesLock) {
@@ -25,10 +28,12 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
                 _samples.Add(new Sample(0f, 0, TimeSpan.Zero));
             _displayTail = _samples.Count;
         }
-        base.Main();
+        _capture.AddMonoListener(AddSample);
     }
 
-    protected override void AddSample(float sample, int channel, TimeSpan time) {
+    public override void StopMode() => _capture.RemoveListener(AddSample);
+
+    private void AddSample(float sample, int channel, TimeSpan time) {
         lock(_samplesLock) {
             if(_samples is null)
                 return;
@@ -58,10 +63,14 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
         }
     }
     public override void Draw(int strip) {
-        if(_samples is null || hues is null || values is null)
+        if(_samples is null)
             return;
 
         int ledCount = writer.ledCounts[strip];
+
+        Span<float> hues = stackalloc float[ledCount];
+        Span<float> values = stackalloc float[ledCount];
+
         lock(_samplesLock) {
             for(int i = 0; i < ledCount; i++) {
                 float progress = (float)i / ledCount * config.displayCount;
@@ -74,6 +83,6 @@ public class WaveformMode : MusicMode<WaveformMode.Configuration> {
             }
         }
 
-        base.Draw(strip);
+        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
     }
 }

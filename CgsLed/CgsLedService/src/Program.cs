@@ -10,13 +10,13 @@ using System.Text.Json.Serialization;
 using CgsLedController;
 using CgsLedController.Service;
 
+using CgsLedService.Helpers;
 using CgsLedService.Modes.Ambilight;
+using CgsLedService.Modes.Fft;
 using CgsLedService.Modes.Fire;
-using CgsLedService.Modes.Music;
-using CgsLedService.Modes.Music.Fft;
-using CgsLedService.Modes.Music.Vu;
-using CgsLedService.Modes.Music.Waveform;
 using CgsLedService.Modes.StandBy;
+using CgsLedService.Modes.Vu;
+using CgsLedService.Modes.Waveform;
 
 namespace CgsLedService;
 
@@ -40,17 +40,15 @@ internal static class Program {
 
     private static LedController? _led;
 
-    private static readonly MusicConfig musicConfig = new(new MusicColors());
+    private static readonly AudioCapture audioCapture = new();
+
     private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
         { "off", null },
         { "standby", new StandByMode() },
         { "fire", new FireMode() },
-        { "fft", new FftMode(new FftMode.Configuration(musicConfig)) },
-        { "waveform", new WaveformMode(new WaveformMode.Configuration(musicConfig)) },
-        {
-            "vu",
-            new VuMode(new VuMode.Configuration(new MusicConfig(new MusicColors(0f, 120f, 0f, -120f))))
-        },
+        { "fft", new FftMode(audioCapture, new FftMode.Configuration(new MusicColors())) },
+        { "waveform", new WaveformMode(audioCapture, new WaveformMode.Configuration(new MusicColors())) },
+        { "vu", new VuMode(audioCapture, new VuMode.Configuration(new MusicColors(0f, 120f, 0f, -120f))) },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration()) }
     };
 

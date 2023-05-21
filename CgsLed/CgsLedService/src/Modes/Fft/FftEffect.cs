@@ -1,6 +1,6 @@
 ﻿using NAudio.Dsp;
 
-namespace CgsLedService.Modes.Music.Fft;
+namespace CgsLedService.Modes.Fft;
 
 public class FftEffect {
     public event EventHandler? fftUpdated;

@@ -1,22 +1,28 @@
-﻿namespace CgsLedService.Modes.Music.Vu;
+﻿using CgsLedController;
 
-public class VuMode : MusicMode<VuMode.Configuration> {
-    public new record Configuration(
-        MusicConfig music,
+using CgsLedService.Helpers;
+
+namespace CgsLedService.Modes.Vu;
+
+public sealed class VuMode : LedMode<VuMode.Configuration> {
+    public record Configuration(
+        MusicColors colors,
         int sampleCount = 16,
-        float falloffSpeed = 1f) :
-        MusicMode<VuMode.Configuration>.Configuration(music);
+        float falloffSpeed = 1f);
 
-    protected override bool forceMono => false;
+    private readonly AudioCapture _capture;
 
     private readonly float[] _samples = new float[2];
     private readonly int[] _sampleCounts = new int[2];
     private readonly float[] _display = new float[2];
     private readonly TimeSpan[] _lastDisplayTimes = new TimeSpan[2];
 
-    public VuMode(Configuration config) : base(config) { }
+    public VuMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
-    protected override void AddSample(float sample, int channel, TimeSpan time) {
+    protected override void Main() => _capture.AddListener(AddSample);
+    public override void StopMode() => _capture.RemoveListener(AddSample);
+
+    private void AddSample(float sample, int channel, TimeSpan time) {
         if(_samples[channel] >= config.sampleCount) {
             float display = MoreMath.SampleToUnitDb(MathF.Sqrt(_samples[channel] / _sampleCounts[channel]));
             if(GetDisplay(channel) <= display) {
@@ -36,12 +42,13 @@ public class VuMode : MusicMode<VuMode.Configuration> {
 
     public override void Update() { }
     public override void Draw(int strip) {
-        if(hues is null || values is null)
-            return;
-
         int ledCount = writer.ledCounts[strip];
         int rightCount = writer.halfLedCounts[strip];
         int leftCount = ledCount - rightCount;
+
+        Span<float> hues = stackalloc float[ledCount];
+        Span<float> values = stackalloc float[ledCount];
+
         for(int i = 0; i < leftCount; i++) {
             hues[i] = (float)i / leftCount;
             values[i] = Math.Clamp(GetDisplay(0) * leftCount - i, 0f, 1f);
@@ -51,6 +58,6 @@ public class VuMode : MusicMode<VuMode.Configuration> {
             values[ledCount - i - 1] = Math.Clamp(GetDisplay(1) * rightCount - i, 0f, 1f);
         }
 
-        base.Draw(strip);
+        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
     }
 }

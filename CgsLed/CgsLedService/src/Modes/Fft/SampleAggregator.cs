@@ -1,6 +1,6 @@
 ﻿using NAudio.Dsp;
 
-namespace CgsLedService.Modes.Music.Fft;
+namespace CgsLedService.Modes.Fft;
 
 internal sealed class SampleAggregator {
     public event EventHandler<FftEventArgs>? fftCalculated;

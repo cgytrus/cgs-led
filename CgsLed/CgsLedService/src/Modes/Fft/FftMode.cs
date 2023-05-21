@@ -1,15 +1,18 @@
-﻿namespace CgsLedService.Modes.Music.Fft;
+﻿using CgsLedController;
 
-public class FftMode : MusicMode<FftMode.Configuration> {
-    public new record Configuration(
-        MusicConfig music,
+using CgsLedService.Helpers;
+
+namespace CgsLedService.Modes.Fft;
+
+public class FftMode : LedMode<FftMode.Configuration> {
+    public record Configuration(
+        MusicColors colors,
         int showStart = 0,
         int showCount = 56,
         float noiseCut = 0.25f,
-        bool mirror = true) :
-        MusicMode<FftMode.Configuration>.Configuration(music);
+        bool mirror = true);
 
-    protected override bool forceMono => true;
+    private readonly AudioCapture _capture;
 
     private FftEffect? _fft;
 
@@ -19,25 +22,25 @@ public class FftMode : MusicMode<FftMode.Configuration> {
     private int _fftAddCounter;
     private bool _newFrame;
 
-    public FftMode(Configuration config) : base(config) { }
-
-    public override void StopMode() {
-        if(_fft is not null)
-            _fft.running = false;
-        _fft = null;
-        base.StopMode();
-    }
+    public FftMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
     protected override void Main() {
         const int fftBinCount = 512;
         _rawFft = new float[fftBinCount];
         _fft = new FftEffect(fftBinCount);
         _fft.fftUpdated += (_, _) => UpdateFft(_fft.fft);
-        base.Main();
         _fft.running = true;
+        _capture.AddMonoListener(AddSample);
     }
 
-    protected override void AddSample(float sample, int channel, TimeSpan time) => _fft?.AddSample(sample);
+    public override void StopMode() {
+        if(_fft is not null)
+            _fft.running = false;
+        _fft = null;
+        _capture.RemoveListener(AddSample);
+    }
+
+    private void AddSample(float sample, int channel, TimeSpan time) => _fft?.AddSample(sample);
 
     private void UpdateFft(IReadOnlyList<float> fft) {
         while(!_fftReady) { }
@@ -58,13 +61,17 @@ public class FftMode : MusicMode<FftMode.Configuration> {
 
     public override void Update() { }
     public override void Draw(int strip) {
-        if(_rawFft is null || hues is null || values is null)
+        if(_rawFft is null)
             return;
 
         _fftReady = false;
 
         int fullLedCount = writer.ledCounts[strip];
         int ledCount = config.mirror ? writer.halfLedCounts[strip] : fullLedCount;
+
+        Span<float> hues = stackalloc float[fullLedCount];
+        Span<float> values = stackalloc float[fullLedCount];
+
         for(int i = 0; i < ledCount; i++) {
             if(_fftAddCounter == 0) {
                 hues[i] = 0f;
@@ -84,7 +91,7 @@ public class FftMode : MusicMode<FftMode.Configuration> {
             values[fullLedCount - i - 1] = bin;
         }
 
-        base.Draw(strip);
+        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
 
         _newFrame = true;
         _fftReady = true;
