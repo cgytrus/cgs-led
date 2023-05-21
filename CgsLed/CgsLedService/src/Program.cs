@@ -40,7 +40,7 @@ internal static class Program {
 
     private static LedController? _led;
 
-    private static readonly MusicConfig musicConfig = new(null, false, new MusicColors());
+    private static readonly MusicConfig musicConfig = new(new MusicColors());
     private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
         { "off", null },
         { "standby", new StandByMode() },
@@ -49,7 +49,7 @@ internal static class Program {
         { "waveform", new WaveformMode(new WaveformMode.Configuration(musicConfig)) },
         {
             "vu",
-            new VuMode(new VuMode.Configuration(musicConfig with { colors = new MusicColors(0f, 120f, 0f, -120f) }))
+            new VuMode(new VuMode.Configuration(new MusicConfig(new MusicColors(0f, 120f, 0f, -120f))))
         },
         { "ambilight", new AmbilightMode(new AmbilightMode.Configuration()) }
     };

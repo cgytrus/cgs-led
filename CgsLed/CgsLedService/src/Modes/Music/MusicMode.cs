@@ -27,10 +27,7 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
     protected override void Main() {
         hues = new float[writer.ledCounts.Max()];
         values = new float[hues.Length];
-        _capture = config.music.process is null ? new WasapiLoopbackCapture() :
-            new WasapiProcessLoopbackCapture(config.music.process,
-                config.music.excludeProcess ? AppCaptureThingy.ProcessLoopbackMode.ExcludeTargetProcessTree :
-                    AppCaptureThingy.ProcessLoopbackMode.IncludeTargetProcessTree);
+        _capture = new WasapiLoopbackCapture();
 
         int blockAlign = _capture.WaveFormat.BlockAlign;
         int channels = _capture.WaveFormat.Channels;
@@ -58,8 +55,6 @@ public abstract class MusicMode<TConfig> : LedMode<TConfig>, IDisposable
         }
 
         _capture.DataAvailable += forceMono ? OnDataMono : OnData;
-        if(_capture is WasapiProcessLoopbackCapture processCapture)
-            processCapture.InitializeProcessCaptureDevice();
         _capture.StartRecording();
     }
 
