@@ -27,7 +27,7 @@ public sealed class VuMode : LedMode<VuMode.Configuration> {
             float display = MoreMath.SampleToUnitDb(MathF.Sqrt(_samples[channel] / _sampleCounts[channel]));
             if(GetDisplay(channel) <= display) {
                 _display[channel] = display;
-                _lastDisplayTimes[channel] = this.time;
+                _lastDisplayTimes[channel] = VuMode.time;
             }
 
             _samples[channel] = 0f;

@@ -7,6 +7,10 @@ public class LedController {
     public record Configuration(float brightness, bool showFps);
     public Configuration config { get; set; }
 
+    public static TimeSpan time => stopwatch.Elapsed;
+
+    private static readonly Stopwatch stopwatch = Stopwatch.StartNew();
+
     private bool _stopping;
 
     private readonly HashSet<LedMode> _modes = new();

@@ -8,9 +8,7 @@ namespace CgsLedController;
 public abstract class LedMode {
     private const int HeaderSize = 1;
 
-    public TimeSpan time => _stopwatch.Elapsed;
-
-    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    protected static TimeSpan time => LedController.time;
 
     protected LedWriter writer { get; private set; } = null!;
 

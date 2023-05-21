@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using CgsLedController;
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -7,8 +7,6 @@ namespace CgsLedService.Helpers;
 
 public sealed class AudioCapture : IDisposable {
     public delegate void SampleAddedFunc(float sample, int channel, TimeSpan time);
-
-    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     private WasapiCapture? _capture;
     private SampleAddedFunc? _sampleAdded;
@@ -50,7 +48,7 @@ public sealed class AudioCapture : IDisposable {
             return;
         WaveFormat format = _capture.WaveFormat;
         int channelSize = format.BlockAlign / format.Channels;
-        TimeSpan time = _stopwatch.Elapsed;
+        TimeSpan time = LedController.time;
 
         for(int i = 0; i < args.BytesRecorded; i += format.BlockAlign) {
             for(int j = 0; j < format.Channels; j++)
@@ -64,7 +62,7 @@ public sealed class AudioCapture : IDisposable {
             return;
         WaveFormat format = _capture.WaveFormat;
         int channelSize = format.BlockAlign / format.Channels;
-        TimeSpan time = _stopwatch.Elapsed;
+        TimeSpan time = LedController.time;
 
         for(int i = 0; i < args.BytesRecorded; i += format.BlockAlign) {
             float total = 0f;
