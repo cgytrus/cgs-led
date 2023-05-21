@@ -234,18 +234,6 @@ public:
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
-            "LSL %[DATA_0]             \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "NOP                       \n\t" // 1c
-            "LSL %[DATA_1]             \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
-
-            "ST X, %[SET_H_0]          \n\t" // 2c
-            "SBRS %[DATA_0], 7         \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "ST Z, %[SET_H_1]          \n\t" // 2c
-            "SBRS %[DATA_1], 7         \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
@@ -260,18 +248,6 @@ public:
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
-            "LSL %[DATA_0]             \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "NOP                       \n\t" // 1c
-            "LSL %[DATA_1]             \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
-
-            "ST X, %[SET_H_0]          \n\t" // 2c
-            "SBRS %[DATA_0], 7         \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "ST Z, %[SET_H_1]          \n\t" // 2c
-            "SBRS %[DATA_1], 7         \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
@@ -286,18 +262,6 @@ public:
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
-            "LSL %[DATA_0]             \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "NOP                       \n\t" // 1c
-            "LSL %[DATA_1]             \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
-
-            "ST X, %[SET_H_0]          \n\t" // 2c
-            "SBRS %[DATA_0], 7         \n\t" // 1c
-            "ST X, %[SET_L_0]          \n\t" // 2c
-            "ST Z, %[SET_H_1]          \n\t" // 2c
-            "SBRS %[DATA_1], 7         \n\t" // 1c
-            "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
@@ -312,6 +276,7 @@ public:
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
             "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
             "NOP                       \n\t" // 1c
@@ -324,6 +289,49 @@ public:
             "ST Z, %[SET_H_1]          \n\t" // 2c
             "SBRS %[DATA_1], 7         \n\t" // 1c
             "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_0]             \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
+            "LSL %[DATA_1]             \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+
+            "ST X, %[SET_H_0]          \n\t" // 2c
+            "SBRS %[DATA_0], 7         \n\t" // 1c
+            "ST X, %[SET_L_0]          \n\t" // 2c
+            "ST Z, %[SET_H_1]          \n\t" // 2c
+            "SBRS %[DATA_1], 7         \n\t" // 1c
+            "ST Z, %[SET_L_1]          \n\t" // 2c
+            "NOP                       \n\t" // 1c
             "NOP                       \n\t" // 1c
             "LSL %[DATA_0]             \n\t" // 1c
             "ST X, %[SET_L_0]          \n\t" // 2c
