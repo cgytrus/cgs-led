@@ -25,7 +25,7 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
 
     public WaveformMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
-    protected override void Main() {
+    public override void Start() {
         _capture.AddMonoListener(AddSample);
         lock(_samplesLock) {
             _samples = new List<Sample>(bufferSize);
@@ -66,7 +66,7 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
             _showDisplayTail = Math.Min(_displayTail, _samples.Count);
         }
     }
-    public override void Draw(int strip) {
+    public override void Draw(LedWriter writer, int strip) {
         if(_samples is null)
             return;
 

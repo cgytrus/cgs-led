@@ -3,8 +3,7 @@
 namespace CgsLedService.Modes.Fire;
 
 public class FireMode : LedMode {
-    public override void Update() { }
-    public override void Draw(int strip) {
+    public override void Draw(LedWriter writer, int strip) {
         float t = (float)time.TotalSeconds * 0.8f;
         for(int i = 0; i < writer.ledCounts[strip]; i++) {
             float valueNoise = Perlin.Get(i * 0.25f, 0f, t);

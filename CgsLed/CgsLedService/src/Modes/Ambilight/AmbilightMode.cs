@@ -12,7 +12,7 @@ public class AmbilightMode : LedMode {
     public AmbilightMode(ScreenCapture screenCapture) => _screenCapture = screenCapture;
 
     public override void Update() => _screenCapture.Update();
-    public override void Draw(int strip) {
+    public override void Draw(LedWriter writer, int strip) {
         int pixelCount = writer.ledCounts[strip];
 
         IReadOnlyList<CaptureZone> captures = _screenCapture.captures;

@@ -24,7 +24,7 @@ public class FftMode : LedMode<FftMode.Configuration> {
 
     public FftMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
-    protected override void Main() {
+    public override void Start() {
         const int fftBinCount = 512;
         _rawFft = new float[fftBinCount];
         _fft = new FftEffect(fftBinCount);
@@ -59,8 +59,7 @@ public class FftMode : LedMode<FftMode.Configuration> {
         _fftAddCounter++;
     }
 
-    public override void Update() { }
-    public override void Draw(int strip) {
+    public override void Draw(LedWriter writer, int strip) {
         if(_rawFft is null)
             return;
 

@@ -19,7 +19,7 @@ public sealed class VuMode : LedMode<VuMode.Configuration> {
 
     public VuMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
 
-    protected override void Main() => _capture.AddListener(AddSample);
+    public override void Start() => _capture.AddListener(AddSample);
     public override void StopMode() => _capture.RemoveListener(AddSample);
 
     private void AddSample(float sample, int channel, TimeSpan time) {
@@ -40,8 +40,7 @@ public sealed class VuMode : LedMode<VuMode.Configuration> {
     private float GetDisplay(int channel) =>
         _display[channel] - config.falloffSpeed * (float)(time - _lastDisplayTimes[channel]).TotalSeconds;
 
-    public override void Update() { }
-    public override void Draw(int strip) {
+    public override void Draw(LedWriter writer, int strip) {
         int ledCount = writer.ledCounts[strip];
         int rightCount = writer.halfLedCounts[strip];
         int leftCount = ledCount - rightCount;

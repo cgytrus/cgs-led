@@ -76,7 +76,7 @@ public class LedController {
             for(int i = 0; i < _writer.ledCounts[strip]; i++)
                 _writer.Write(0, 0, 0);
         else
-            mode.Draw(strip);
+            mode.Draw(_writer, strip);
     }
 
     private void UpdateFps() {
@@ -124,7 +124,7 @@ public class LedController {
             if(mode is not null)
                 _modes.Add(mode);
         foreach(LedMode mode in _modes)
-            mode.Start(_writer);
+            mode.Start();
         _writer.Write((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
         _writer.brightness = config.brightness;
     }
