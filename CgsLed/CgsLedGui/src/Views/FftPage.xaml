@@ -5,10 +5,21 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:CgsLedGui.Views"
+    xmlns:ctk="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:cfgt="using:CgsLedServiceTypes.Config"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <views:BasicModeControl mode="fft" />
+        <ctk:RangeSelector x:Name="show" Width="{x:Bind cfgt:FftModeConfig.BinCount}"
+                           StepFrequency="1" Minimum="0" Maximum="{x:Bind cfgt:FftModeConfig.BinCount}" />
+        <Slider x:Name="noiseCut" Header="Noise Cut" Minimum="0" Maximum="100" Width="200"
+                Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
+        <CheckBox x:Name="mirror">Mirror</CheckBox>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+            <Button Click="Apply_OnClick">Apply</Button>
+            <Button Click="Reload_OnClick">Reload</Button>
+        </StackPanel>
     </StackPanel>
 </Page>

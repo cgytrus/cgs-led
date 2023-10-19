@@ -20,9 +20,8 @@ public class FftMode : LedMode<FftModeConfig> {
     public FftMode(AudioCapture capture, FftModeConfig config) : base(config) => _capture = capture;
 
     public override void Start() {
-        const int fftBinCount = 512;
-        _rawFft = new float[fftBinCount];
-        _fft = new FftEffect(fftBinCount);
+        _rawFft = new float[FftModeConfig.BinCount];
+        _fft = new FftEffect(FftModeConfig.BinCount);
         _fft.fftUpdated += (_, _) => UpdateFft(_fft.fft);
         _fft.running = true;
         _capture.AddMonoListener(AddSample);

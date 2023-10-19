@@ -14,7 +14,7 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
             <Slider x:Name="brightness" Header="Brightness" Minimum="0" Maximum="100" Width="200"
-                    Orientation="Horizontal" TickPlacement="Outside" TickFrequency="10" />
+                    Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
         </StackPanel>
         <views:ScreenCaptureConfigControl x:Name="screen" />
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
