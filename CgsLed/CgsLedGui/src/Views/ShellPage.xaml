@@ -8,7 +8,6 @@
     xmlns:i="using:Microsoft.Xaml.Interactivity"
     xmlns:ic="using:Microsoft.Xaml.Interactions.Core"
     xmlns:helpers="using:CgsLedGui.Helpers"
-    xmlns:ui="using:CommunityToolkit.WinUI.UI"
     xmlns:views="using:CgsLedGui.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -27,8 +26,12 @@
             SelectedItem="{x:Bind viewModel.selected, Mode=OneWay}">
             <NavigationView.MenuItems>
                 <NavigationViewItem helpers:NavHelper.NavigateTo="views:GeneralPage">General</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:OffPage">Off</NavigationViewItem>
                 <NavigationViewItem helpers:NavHelper.NavigateTo="views:StandbyPage">Standby</NavigationViewItem>
                 <NavigationViewItem helpers:NavHelper.NavigateTo="views:FirePage">Fire</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:FftPage">FFT</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:WaveformPage">Waveform</NavigationViewItem>
+                <NavigationViewItem helpers:NavHelper.NavigateTo="views:VuPage">VU</NavigationViewItem>
                 <NavigationViewItem helpers:NavHelper.NavigateTo="views:AmbilightPage">Ambilight</NavigationViewItem>
             </NavigationView.MenuItems>
             <i:Interaction.Behaviors>

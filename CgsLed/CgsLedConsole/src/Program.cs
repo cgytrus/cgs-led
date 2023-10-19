@@ -72,5 +72,6 @@ internal static class Program {
         _writer = new BinaryWriter(stream, Encoding.Default);
         _reader = new BinaryReader(stream, Encoding.Default);
         commands.Run(args);
+        _reader.Read();
     }
 }

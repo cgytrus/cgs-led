@@ -75,6 +75,7 @@ internal static class Program {
     private readonly record struct Client(TcpClient handler, NetworkStream stream, BinaryReader reader,
         BinaryWriter writer) : IDisposable {
         public void Dispose() {
+            writer.Write((byte)0);
             handler.Dispose();
             stream.Dispose();
             reader.Dispose();

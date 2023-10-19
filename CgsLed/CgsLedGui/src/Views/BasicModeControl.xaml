@@ -1,0 +1,15 @@
+<UserControl
+    x:Class="CgsLedGui.Views.BasicModeControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+        <Button x:Name="all" Click="Select_OnClick" Tag="all">All</Button>
+        <Button x:Name="window" Click="Select_OnClick" Tag="window">Window</Button>
+        <Button x:Name="door" Click="Select_OnClick" Tag="door">Door</Button>
+        <Button x:Name="monitor" Click="Select_OnClick" Tag="monitor">Monitor</Button>
+    </StackPanel>
+</UserControl>

@@ -5,5 +5,5 @@ namespace CgsLedGui;
 public sealed partial class MainWindow {
     public MainWindow() => InitializeComponent();
 
-    private void MainWindow_OnClosed(object sender, WindowEventArgs args) => App.StopLed();
+    private void MainWindow_OnClosed(object sender, WindowEventArgs args) { }
 }

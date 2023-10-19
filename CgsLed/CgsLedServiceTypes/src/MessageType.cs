@@ -4,6 +4,7 @@ public enum MessageType : byte {
     Start,
     Stop,
     Quit,
+    GetRunning,
     GetModes,
     GetMode,
     SetMode,
