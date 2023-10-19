@@ -12,6 +12,17 @@
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <views:BasicModeControl mode="fft" />
+        <NumberBox Header="Hue Speed" Minimum="0" Value="{x:Bind hueSpeed, Mode=TwoWay}" />
+        <Slider Header="Hue Offset" Minimum="0" Maximum="360" Width="200" Value="{x:Bind hueOffset, Mode=TwoWay}"
+                Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
+        <Slider Header="Right Hue Offset" Minimum="0" Maximum="360" Width="200" Value="{x:Bind rightHueOffset, Mode=TwoWay}"
+                Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
+        <Slider Header="Hue Range" Minimum="0" Maximum="360" Width="200" Value="{x:Bind hueRange, Mode=TwoWay}"
+                Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
+        <Slider Header="Saturation" Minimum="0" Maximum="100" Width="200" Value="{x:Bind saturation, Mode=TwoWay}"
+                Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
+        <CheckBox IsChecked="{x:Bind gammaCorrection, Mode=TwoWay}">Use Gamma Correction</CheckBox>
+        <views:MusicColorsRenderer x:Name="colorsRenderer" />
         <ctk:RangeSelector x:Name="show" Width="{x:Bind cfgt:FftModeConfig.BinCount}"
                            StepFrequency="1" Minimum="0" Maximum="{x:Bind cfgt:FftModeConfig.BinCount}" />
         <Slider x:Name="noiseCut" Header="Noise Cut" Minimum="0" Maximum="100" Width="200"
