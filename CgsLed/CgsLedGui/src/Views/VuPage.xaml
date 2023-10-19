@@ -10,5 +10,11 @@
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <views:BasicModeControl mode="vu" />
+        <NumberBox x:Name="sampleCount" Header="Sample Count" Minimum="0" />
+        <NumberBox x:Name="falloffSpeed" Header="Falloff Speed" Minimum="0" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+            <Button Click="Apply_OnClick">Apply</Button>
+            <Button Click="Reload_OnClick">Reload</Button>
+        </StackPanel>
     </StackPanel>
 </Page>
