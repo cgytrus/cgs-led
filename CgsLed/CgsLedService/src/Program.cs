@@ -166,8 +166,7 @@ internal static class Program {
         const int baudRate = 2000000;
         Console.WriteLine($"Starting on port {PortName} with baud rate {baudRate}");
         SerialPort port = new(PortName, baudRate, Parity.None, 8, StopBits.One);
-        _led = new LedController(new LedControllerConfig(0.5f, false),
-            new SerialPortLedWriter(ledCounts, port));
+        _led = new LedController(new LedControllerConfig(), new SerialPortLedWriter(ledCounts, port));
         _led.Start();
         Console.WriteLine("Ready");
     }
