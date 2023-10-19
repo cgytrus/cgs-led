@@ -65,16 +65,71 @@ internal static class Program {
     private static readonly IReadOnlyDictionary<LedMode, string> inverseModes =
         modes.Skip(1).ToDictionary(pair => pair.Value!, pair => pair.Key);
 
-    private readonly record struct Client(TcpClient handler, NetworkStream stream, BinaryReader reader,
+    private readonly record struct IpcContext(TcpClient client, NetworkStream stream, BinaryReader reader,
         BinaryWriter writer) : IDisposable {
         public void Dispose() {
             writer.Write((byte)0);
-            handler.Dispose();
+            client.Dispose();
             stream.Dispose();
             reader.Dispose();
             writer.Dispose();
         }
     }
+
+    private static readonly IReadOnlyDictionary<MessageType, Action<IpcContext>> handlers =
+        new Dictionary<MessageType, Action<IpcContext>> {
+            { MessageType.Start, client => {
+                Start();
+                client.Dispose();
+            } },
+            { MessageType.Stop, client => {
+                Stop();
+                client.Dispose();
+            } },
+            { MessageType.Quit, client => {
+                Stop();
+                _running = false;
+                client.Dispose();
+            } },
+            { MessageType.GetRunning, client => {
+                client.writer.Write(_led is not null);
+                client.Dispose();
+            } },
+            { MessageType.GetModes, client => {
+                GetModes(modes => {
+                    client.writer.Write(modes.Count);
+                    foreach((string mode, string strip) in modes) {
+                        client.writer.Write(mode);
+                        client.writer.Write(strip);
+                    }
+                    client.Dispose();
+                });
+            } },
+            { MessageType.GetMode, client => {
+                GetMode(client.reader.ReadString(), mode => {
+                    client.writer.Write(mode);
+                    client.Dispose();
+                });
+            } },
+            { MessageType.SetMode, client => {
+                SetMode(client.reader.ReadString(), client.reader.ReadString());
+                client.Dispose();
+            } },
+            { MessageType.Reload, client => {
+                Reload();
+                client.Dispose();
+            } },
+            { MessageType.GetConfig, client => {
+                client.writer.Write(GetConfig(client.reader.ReadString()));
+                client.Dispose();
+            } },
+            { MessageType.GetScreens, client => {
+                client.writer.Write(screenCapture.screenCaptures.Count);
+                foreach(IScreenCapture capture in screenCapture.screenCaptures)
+                    client.writer.Write(capture.Display.DeviceName);
+                client.Dispose();
+            } }
+        };
 
     private static void Main() {
         Start();
@@ -87,16 +142,21 @@ internal static class Program {
             listener.Start();
 
             while(_running) {
-                TcpClient handler = listener.AcceptTcpClient();
-                NetworkStream stream = handler.GetStream();
-                Client client = new() {
-                    handler = handler,
+                TcpClient client = listener.AcceptTcpClient();
+                NetworkStream stream = client.GetStream();
+                IpcContext context = new() {
+                    client = client,
                     stream = stream,
                     reader = new BinaryReader(stream, Encoding.Default),
                     writer = new BinaryWriter(stream, Encoding.Default)
                 };
                 try {
-                    ReadMessage(client);
+                    if(!handlers.TryGetValue((MessageType)context.reader.ReadByte(), out Action<IpcContext>? handler)) {
+                        Console.WriteLine("Unknown message");
+                        context.Dispose();
+                        return;
+                    }
+                    handler(context);
                 }
                 catch(Exception ex) {
                     Console.WriteLine("Failed to read message:");
@@ -107,66 +167,6 @@ internal static class Program {
         finally {
             listener.Stop();
             _led?.Stop();
-        }
-    }
-
-    private static void ReadMessage(Client client) {
-        switch((MessageType)client.reader.ReadByte()) {
-            case MessageType.Start:
-                Start();
-                client.Dispose();
-                break;
-            case MessageType.Stop:
-                Stop();
-                client.Dispose();
-                break;
-            case MessageType.Quit:
-                Stop();
-                _running = false;
-                client.Dispose();
-                break;
-            case MessageType.GetRunning:
-                client.writer.Write(_led is not null);
-                client.Dispose();
-                break;
-            case MessageType.GetModes:
-                GetModes(modes => {
-                    client.writer.Write(modes.Count);
-                    foreach((string mode, string strip) in modes) {
-                        client.writer.Write(mode);
-                        client.writer.Write(strip);
-                    }
-                    client.Dispose();
-                });
-                break;
-            case MessageType.GetMode:
-                GetMode(client.reader.ReadString(), mode => {
-                    client.writer.Write(mode);
-                    client.Dispose();
-                });
-                break;
-            case MessageType.SetMode:
-                SetMode(client.reader.ReadString(), client.reader.ReadString());
-                client.Dispose();
-                break;
-            case MessageType.Reload:
-                Reload();
-                client.Dispose();
-                break;
-            case MessageType.GetConfig:
-                client.writer.Write(GetConfig(client.reader.ReadString()));
-                client.Dispose();
-                break;
-            case MessageType.GetScreens:
-                client.writer.Write(screenCapture.screenCaptures.Count);
-                foreach(IScreenCapture capture in screenCapture.screenCaptures)
-                    client.writer.Write(capture.Display.DeviceName);
-                client.Dispose();
-                break;
-            default:
-                Console.WriteLine("Unknown message");
-                client.Dispose();
-                break;
         }
     }
 

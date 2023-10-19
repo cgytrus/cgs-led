@@ -15,10 +15,10 @@ public sealed partial class ScreenCaptureConfigControl {
     public ScreenCaptureConfigControl() {
         InitializeComponent();
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("screen");
-            _config = ConfigFile.LoadOrSave(client.reader.ReadString(), _config);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetConfig);
+            context.writer.Write("screen");
+            _config = ConfigFile.LoadOrSave(context.reader.ReadString(), _config);
         }
         UpdateSelectors();
     }
@@ -45,10 +45,10 @@ public sealed partial class ScreenCaptureConfigControl {
             };
         }
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("screen");
-            ConfigFile.Save(client.reader.ReadString(), _config);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetConfig);
+            context.writer.Write("screen");
+            ConfigFile.Save(context.reader.ReadString(), _config);
         }
     }
 
@@ -68,11 +68,11 @@ public sealed partial class ScreenCaptureConfigControl {
                 window.Visibility = Visibility.Collapsed;
                 _screens.Clear();
                 {
-                    using App.Client client = App.GetClient();
-                    client.writer.Write((byte)MessageType.GetScreens);
-                    int count = client.reader.ReadInt32();
+                    using App.IpcContext context = App.GetIpc();
+                    context.writer.Write((byte)MessageType.GetScreens);
+                    int count = context.reader.ReadInt32();
                     for(int i = 0; i < count; i++)
-                        _screens.Add(client.reader.ReadString());
+                        _screens.Add(context.reader.ReadString());
                 }
                 break;
             case 1:

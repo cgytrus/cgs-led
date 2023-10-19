@@ -18,23 +18,23 @@ public partial class App {
         _window.Activate();
     }
 
-    public readonly record struct Client(TcpClient handler, NetworkStream stream, BinaryReader reader,
+    public readonly record struct IpcContext(TcpClient client, NetworkStream stream, BinaryReader reader,
         BinaryWriter writer) : IDisposable {
         public void Dispose() {
             reader.Read();
-            handler.Dispose();
+            client.Dispose();
             stream.Dispose();
             reader.Dispose();
             writer.Dispose();
         }
     }
 
-    public static Client GetClient() {
-        TcpClient handler = new();
-        handler.Connect(new IPEndPoint(IPAddress.Loopback, 42069));
-        NetworkStream stream = handler.GetStream();
-        return new Client {
-            handler = handler,
+    public static IpcContext GetIpc() {
+        TcpClient client = new();
+        client.Connect(new IPEndPoint(IPAddress.Loopback, 42069));
+        NetworkStream stream = client.GetStream();
+        return new IpcContext {
+            client = client,
             stream = stream,
             reader = new BinaryReader(stream, Encoding.Default),
             writer = new BinaryWriter(stream, Encoding.Default)

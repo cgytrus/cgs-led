@@ -12,15 +12,15 @@ public sealed partial class GeneralPage {
     public GeneralPage() {
         InitializeComponent();
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetRunning);
-            startStop.Content = client.reader.ReadBoolean() ? "Stop" : "Start";
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetRunning);
+            startStop.Content = context.reader.ReadBoolean() ? "Stop" : "Start";
         }
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("main");
-            _config = ConfigFile.LoadOrSave(client.reader.ReadString(), _config);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetConfig);
+            context.writer.Write("main");
+            _config = ConfigFile.LoadOrSave(context.reader.ReadString(), _config);
         }
         brightness.Value = _config.brightness * 100d;
     }
@@ -28,40 +28,40 @@ public sealed partial class GeneralPage {
     private void StartStop_OnClick(object sender, RoutedEventArgs e) {
         bool running;
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetRunning);
-            running = client.reader.ReadBoolean();
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetRunning);
+            running = context.reader.ReadBoolean();
         }
 
         if(running) {
             startStop.Content = "Stop";
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.Stop);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.Stop);
         }
         else {
             startStop.Content = "Start";
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.Start);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.Start);
         }
     }
 
     private void Apply_OnClick(object sender, RoutedEventArgs e) {
         _config = _config with { brightness = (float)(brightness.Value / 100d) };
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("main");
-            ConfigFile.Save(client.reader.ReadString(), _config);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.GetConfig);
+            context.writer.Write("main");
+            ConfigFile.Save(context.reader.ReadString(), _config);
         }
         screen.Save();
         {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.Reload);
+            using App.IpcContext context = App.GetIpc();
+            context.writer.Write((byte)MessageType.Reload);
         }
     }
 
     private void Reload_OnClick(object sender, RoutedEventArgs e) {
-        using App.Client client = App.GetClient();
-        client.writer.Write((byte)MessageType.Reload);
+        using App.IpcContext context = App.GetIpc();
+        context.writer.Write((byte)MessageType.Reload);
     }
 }
