@@ -112,6 +112,12 @@ public class LedController {
         });
     }
 
+    public void GetModes(Action<LedMode?[]> callback) {
+        ScheduleAction(() => {
+            callback((LedMode?[])_modeMap.Clone());
+        });
+    }
+
     public void Reload() {
         ScheduleAction(UpdateModes);
     }

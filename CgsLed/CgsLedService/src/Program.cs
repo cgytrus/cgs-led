@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
@@ -50,6 +51,11 @@ internal static class Program {
         { "door", 1 }, { "d", 1 },
         { "monitor", 2 }, { "mon", 2 }, { "m", 2 }
     };
+    private static readonly IReadOnlyDictionary<int, string> inverseAliases = new Dictionary<int, string> {
+        { 0, "window" },
+        { 1, "door" },
+        { 2, "monitor" }
+    };
 
     private static readonly AudioCapture audioCapture = new();
     private static readonly ScreenCapture screenCapture = new(new ScreenCapture.Configuration(), ledCounts);
@@ -63,6 +69,18 @@ internal static class Program {
         { "vu", new VuMode(audioCapture, new VuMode.Configuration(new MusicColors(0f, 120f, 0f, -120f))) },
         { "ambilight", new AmbilightMode(screenCapture) }
     };
+    private static readonly IReadOnlyDictionary<LedMode, string> inverseModes =
+        modes.Skip(1).ToDictionary(pair => pair.Value!, pair => pair.Key);
+
+    private readonly record struct Client(TcpClient handler, NetworkStream stream, BinaryReader reader,
+        BinaryWriter writer) : IDisposable {
+        public void Dispose() {
+            handler.Dispose();
+            stream.Dispose();
+            reader.Dispose();
+            writer.Dispose();
+        }
+    }
 
     private static void Main() {
         Start();
@@ -75,12 +93,16 @@ internal static class Program {
             listener.Start();
 
             while(_running) {
-                using TcpClient handler = listener.AcceptTcpClient();
-                using NetworkStream networkStream = handler.GetStream();
-                using BinaryReader reader = new(networkStream, Encoding.Default);
-                using BinaryWriter writer = new(networkStream, Encoding.Default);
+                TcpClient handler = listener.AcceptTcpClient();
+                NetworkStream stream = handler.GetStream();
+                Client client = new() {
+                    handler = handler,
+                    stream = stream,
+                    reader = new BinaryReader(stream, Encoding.Default),
+                    writer = new BinaryWriter(stream, Encoding.Default)
+                };
                 try {
-                    ReadMessage(reader, writer);
+                    ReadMessage(client);
                 }
                 catch(Exception ex) {
                     Console.WriteLine("Failed to read message:");
@@ -94,29 +116,52 @@ internal static class Program {
         }
     }
 
-    private static void ReadMessage(BinaryReader reader, BinaryWriter writer) {
-        switch((MessageType)reader.ReadByte()) {
+    private static void ReadMessage(Client client) {
+        switch((MessageType)client.reader.ReadByte()) {
             case MessageType.Start:
                 Start();
+                client.Dispose();
                 break;
             case MessageType.Stop:
                 Stop();
+                client.Dispose();
                 break;
             case MessageType.Quit:
                 Stop();
                 _running = false;
+                client.Dispose();
+                break;
+            case MessageType.GetModes:
+                GetModes(modes => {
+                    client.writer.Write(modes.Count);
+                    foreach((string mode, string strip) in modes) {
+                        client.writer.Write(mode);
+                        client.writer.Write(strip);
+                    }
+                    client.Dispose();
+                });
+                break;
+            case MessageType.GetMode:
+                GetMode(client.reader.ReadString(), mode => {
+                    client.writer.Write(mode);
+                    client.Dispose();
+                });
                 break;
             case MessageType.SetMode:
-                SetMode(reader.ReadString(), reader.ReadString());
+                SetMode(client.reader.ReadString(), client.reader.ReadString());
+                client.Dispose();
                 break;
             case MessageType.Reload:
                 Reload();
+                client.Dispose();
                 break;
             case MessageType.GetConfig:
-                writer.Write(GetConfig(reader.ReadString()));
+                client.writer.Write(GetConfig(client.reader.ReadString()));
+                client.Dispose();
                 break;
             default:
                 Console.WriteLine("Unknown message");
+                client.Dispose();
                 break;
         }
     }
@@ -158,6 +203,44 @@ internal static class Program {
             return;
         Console.WriteLine($"Setting strip {i} mode to {mode.ToLower()}");
         _led.SetMode(i, ledMode);
+    }
+
+    private static void GetModes(Action<IList<(string mode, string strip)>> callback) {
+        if(!CheckRunning()) {
+            callback(ImmutableList<(string mode, string strip)>.Empty);
+            return;
+        }
+        _led.GetModes(raw => {
+            try {
+                callback(raw.Select((mode, strip) =>
+                    (mode is null ? "off" : inverseModes[mode], inverseAliases[strip])).ToList());
+            }
+            catch(Exception ex) {
+                Console.WriteLine("Failed to read message:");
+                Console.WriteLine(ex.ToString());
+            }
+        });
+    }
+
+    private static void GetMode(string strip, Action<string> callback) {
+        if(!CheckRunning()) {
+            callback(string.Empty);
+            return;
+        }
+        _led.GetModes(raw => {
+            try {
+                if(!aliases.TryGetValue(strip, out int i) && !int.TryParse(strip, out i)) {
+                    callback("wrong strip");
+                    return;
+                }
+                LedMode? mode = raw[i];
+                callback(mode is null ? "off" : inverseModes[mode]);
+            }
+            catch(Exception ex) {
+                Console.WriteLine("Failed to read message:");
+                Console.WriteLine(ex.ToString());
+            }
+        });
     }
 
     private static void Reload() {

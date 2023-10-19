@@ -14,9 +14,30 @@ internal static class Program {
         new("stop", _ => _writer.Write((byte)MessageType.Stop)),
         new("quit", _ => _writer.Write((byte)MessageType.Quit)),
         new("mode", args => {
-            _writer.Write((byte)MessageType.SetMode);
-            _writer.Write(args[0]);
-            _writer.Write(args[1]);
+            switch(args.Length) {
+                case 0:
+                case 1 when args[0] == "all":
+                    _writer.Write((byte)MessageType.GetModes);
+                    int count = _reader.ReadInt32();
+                    for(int i = 0; i < count; i++) {
+                        string mode = _reader.ReadString();
+                        string strip = _reader.ReadString();
+                        Console.WriteLine($"{strip} {mode}");
+                    }
+                    if(count == 0)
+                        Console.WriteLine("stopped or no strips");
+                    break;
+                case 1:
+                    _writer.Write((byte)MessageType.GetMode);
+                    _writer.Write(args[0]);
+                    Console.WriteLine(_reader.ReadString());
+                    break;
+                default:
+                    _writer.Write((byte)MessageType.SetMode);
+                    _writer.Write(args[0]);
+                    _writer.Write(args[1]);
+                    break;
+            }
         }),
         new("reload", _ => _writer.Write((byte)MessageType.Reload)),
         new("config", args => {
