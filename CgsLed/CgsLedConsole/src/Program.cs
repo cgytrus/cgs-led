@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -43,7 +44,20 @@ internal static class Program {
         new("config", args => {
             _writer.Write((byte)MessageType.GetConfig);
             _writer.Write(args.Length >= 1 ? args[0] : "");
-            Console.WriteLine(_reader.ReadString());
+            string path = _reader.ReadString();
+            if(!File.Exists(path)) {
+                Console.WriteLine($"invalid config file path: {path}");
+                return;
+            }
+            Process process = new() {
+                StartInfo = new ProcessStartInfo {
+                    UseShellExecute = true,
+                    FileName = path
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+            Main(new[] { "reload" });
         })
     });
 
