@@ -12,6 +12,7 @@ namespace CgsLedService.Helpers;
 public sealed partial class ScreenCapture : IDisposable {
     public ScreenCaptureConfig config { get; set; }
 
+    public IReadOnlyList<IScreenCapture> screenCaptures => _screenCaptures;
     public IReadOnlyList<CaptureZone> captures => _captures;
     public object capturesLock { get; } = new();
 

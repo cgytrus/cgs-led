@@ -1,15 +1,13 @@
 using CgsLedController;
 
 using CgsLedServiceTypes;
-using CgsLedServiceTypes.Config;
 
 using Microsoft.UI.Xaml;
 
 namespace CgsLedGui.Views;
 
 public sealed partial class GeneralPage {
-    private LedControllerConfig _main = new();
-    private ScreenCaptureConfig _screen = new();
+    private LedControllerConfig _config = new();
 
     public GeneralPage() {
         InitializeComponent();
@@ -22,15 +20,9 @@ public sealed partial class GeneralPage {
             using App.Client client = App.GetClient();
             client.writer.Write((byte)MessageType.GetConfig);
             client.writer.Write("main");
-            _main = ConfigFile.LoadOrSave(client.reader.ReadString(), _main);
+            _config = ConfigFile.LoadOrSave(client.reader.ReadString(), _config);
         }
-        {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("screen");
-            _screen = ConfigFile.LoadOrSave(client.reader.ReadString(), _screen);
-        }
-        brightness.Value = _main.brightness * 100d;
+        brightness.Value = _config.brightness * 100d;
     }
 
     private void StartStop_OnClick(object sender, RoutedEventArgs e) {
@@ -54,22 +46,14 @@ public sealed partial class GeneralPage {
     }
 
     private void Apply_OnClick(object sender, RoutedEventArgs e) {
-        _main = new LedControllerConfig {
-            brightness = (float)(brightness.Value / 100d),
-            showFps = _main.showFps
-        };
+        _config = _config with { brightness = (float)(brightness.Value / 100d) };
         {
             using App.Client client = App.GetClient();
             client.writer.Write((byte)MessageType.GetConfig);
             client.writer.Write("main");
-            ConfigFile.Save(client.reader.ReadString(), _main);
+            ConfigFile.Save(client.reader.ReadString(), _config);
         }
-        {
-            using App.Client client = App.GetClient();
-            client.writer.Write((byte)MessageType.GetConfig);
-            client.writer.Write("screen");
-            ConfigFile.Save(client.reader.ReadString(), _screen);
-        }
+        screen.Save();
         {
             using App.Client client = App.GetClient();
             client.writer.Write((byte)MessageType.Reload);

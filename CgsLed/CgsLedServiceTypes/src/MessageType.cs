@@ -9,5 +9,6 @@ public enum MessageType : byte {
     GetMode,
     SetMode,
     Reload,
-    GetConfig
+    GetConfig,
+    GetScreens
 }

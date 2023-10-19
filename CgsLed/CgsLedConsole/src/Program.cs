@@ -62,6 +62,16 @@ internal static class Program {
             process.Start();
             process.WaitForExit();
             Main(new[] { "reload" });
+        }),
+        new("screens", _ => {
+            _writer.Write((byte)MessageType.GetScreens);
+            int count = _reader.ReadInt32();
+            for(int i = 0; i < count; i++) {
+                string name = _reader.ReadString();
+                Console.WriteLine($"{i} {name}");
+            }
+            if(count == 0)
+                Console.WriteLine("no screens");
         })
     });
 

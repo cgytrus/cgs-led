@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:CgsLedGui.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
@@ -15,6 +16,7 @@
             <Slider x:Name="brightness" Header="Brightness" Minimum="0" Maximum="100" Width="200"
                     Orientation="Horizontal" TickPlacement="Outside" TickFrequency="10" />
         </StackPanel>
+        <views:ScreenCaptureConfigControl x:Name="screen" />
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
             <Button Click="Apply_OnClick">Apply</Button>
             <Button Click="Reload_OnClick">Reload</Button>

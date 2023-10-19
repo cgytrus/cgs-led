@@ -19,6 +19,8 @@ using CgsLedService.Modes.Waveform;
 using CgsLedServiceTypes;
 using CgsLedServiceTypes.Config;
 
+using ScreenCapture.NET;
+
 namespace CgsLedService;
 
 using ScreenCapture = Helpers.ScreenCapture;
@@ -153,6 +155,12 @@ internal static class Program {
                 break;
             case MessageType.GetConfig:
                 client.writer.Write(GetConfig(client.reader.ReadString()));
+                client.Dispose();
+                break;
+            case MessageType.GetScreens:
+                client.writer.Write(screenCapture.screenCaptures.Count);
+                foreach(IScreenCapture capture in screenCapture.screenCaptures)
+                    client.writer.Write(capture.Display.DeviceName);
                 client.Dispose();
                 break;
             default:

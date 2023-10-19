@@ -10,8 +10,10 @@
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <views:BasicModeControl mode="ambilight" />
+        <views:ScreenCaptureConfigControl x:Name="screen" />
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
-            <NumberBox Header="Rate" Minimum="0" />
+            <Button Click="Apply_OnClick">Apply</Button>
+            <Button Click="Reload_OnClick">Reload</Button>
         </StackPanel>
     </StackPanel>
 </Page>
