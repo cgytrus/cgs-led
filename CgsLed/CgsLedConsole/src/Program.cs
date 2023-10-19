@@ -14,6 +14,10 @@ internal static class Program {
         new("start", _ => _writer.Write((byte)MessageType.Start)),
         new("stop", _ => _writer.Write((byte)MessageType.Stop)),
         new("quit", _ => _writer.Write((byte)MessageType.Quit)),
+        new("running", _ => {
+            _writer.Write((byte)MessageType.GetRunning);
+            Console.WriteLine(_reader.ReadBoolean() ? "running" : "stopped");
+        }),
         new("mode", args => {
             switch(args.Length) {
                 case 0:

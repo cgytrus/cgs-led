@@ -131,6 +131,10 @@ internal static class Program {
                 _running = false;
                 client.Dispose();
                 break;
+            case MessageType.GetRunning:
+                client.writer.Write(_led is not null);
+                client.Dispose();
+                break;
             case MessageType.GetModes:
                 GetModes(modes => {
                     client.writer.Write(modes.Count);
