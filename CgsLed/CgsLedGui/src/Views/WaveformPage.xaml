@@ -10,5 +10,12 @@
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <views:BasicModeControl mode="waveform" />
+        <NumberBox x:Name="bufferSeconds" Header="Buffer Seconds" Minimum="0" />
+        <NumberBox x:Name="displaySeconds" Header="Display Seconds" Minimum="0" />
+        <NumberBox x:Name="avgCount" Header="Samples Per Point" Minimum="0" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+            <Button Click="Apply_OnClick">Apply</Button>
+            <Button Click="Reload_OnClick">Reload</Button>
+        </StackPanel>
     </StackPanel>
 </Page>
