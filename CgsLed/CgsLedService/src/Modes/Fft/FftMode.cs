@@ -2,16 +2,11 @@
 
 using CgsLedService.Helpers;
 
+using CgsLedServiceTypes.Config;
+
 namespace CgsLedService.Modes.Fft;
 
-public class FftMode : LedMode<FftMode.Configuration> {
-    public record Configuration(
-        MusicColors colors,
-        int showStart = 0,
-        int showCount = 56,
-        float noiseCut = 0.25f,
-        bool mirror = true);
-
+public class FftMode : LedMode<FftModeConfig> {
     private readonly AudioCapture _capture;
 
     private FftEffect? _fft;
@@ -22,7 +17,7 @@ public class FftMode : LedMode<FftMode.Configuration> {
     private int _fftAddCounter;
     private bool _newFrame;
 
-    public FftMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
+    public FftMode(AudioCapture capture, FftModeConfig config) : base(config) => _capture = capture;
 
     public override void Start() {
         const int fftBinCount = 512;

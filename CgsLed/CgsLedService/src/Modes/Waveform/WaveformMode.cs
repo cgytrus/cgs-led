@@ -2,15 +2,11 @@
 
 using CgsLedService.Helpers;
 
+using CgsLedServiceTypes.Config;
+
 namespace CgsLedService.Modes.Waveform;
 
-public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
-    public record Configuration(
-        MusicColors colors,
-        float bufferSeconds = 1f,
-        float displaySeconds = 0.15f,
-        int avgCount = 87);
-
+public sealed class WaveformMode : LedMode<WaveformModeConfig> {
     private readonly AudioCapture _capture;
 
     private int bufferSize => (int)(_capture.format.SampleRate * config.bufferSeconds);
@@ -23,7 +19,7 @@ public sealed class WaveformMode : LedMode<WaveformMode.Configuration> {
 
     private readonly object _samplesLock = new();
 
-    public WaveformMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
+    public WaveformMode(AudioCapture capture, WaveformModeConfig config) : base(config) => _capture = capture;
 
     public override void Start() {
         _capture.AddMonoListener(AddSample);

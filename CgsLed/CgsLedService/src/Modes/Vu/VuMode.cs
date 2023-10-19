@@ -2,14 +2,11 @@
 
 using CgsLedService.Helpers;
 
+using CgsLedServiceTypes.Config;
+
 namespace CgsLedService.Modes.Vu;
 
-public sealed class VuMode : LedMode<VuMode.Configuration> {
-    public record Configuration(
-        MusicColors colors,
-        int sampleCount = 16,
-        float falloffSpeed = 1f);
-
+public sealed class VuMode : LedMode<VuModeConfig> {
     private readonly AudioCapture _capture;
 
     private readonly float[] _samples = new float[2];
@@ -17,7 +14,7 @@ public sealed class VuMode : LedMode<VuMode.Configuration> {
     private readonly float[] _display = new float[2];
     private readonly TimeSpan[] _lastDisplayTimes = new TimeSpan[2];
 
-    public VuMode(AudioCapture capture, Configuration config) : base(config) => _capture = capture;
+    public VuMode(AudioCapture capture, VuModeConfig config) : base(config) => _capture = capture;
 
     public override void Start() => _capture.AddListener(AddSample);
     public override void StopMode() => _capture.RemoveListener(AddSample);

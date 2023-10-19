@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
+using CgsLedServiceTypes.Config;
+
 using JetBrains.Annotations;
 
 using ScreenCapture.NET;
@@ -8,9 +10,7 @@ using ScreenCapture.NET;
 namespace CgsLedService.Helpers;
 
 public sealed partial class ScreenCapture : IDisposable {
-    public record Configuration(int screen = 0, string? window = null);
-
-    public Configuration config { get; set; }
+    public ScreenCaptureConfig config { get; set; }
 
     public IReadOnlyList<CaptureZone> captures => _captures;
     public object capturesLock { get; } = new();
@@ -24,7 +24,7 @@ public sealed partial class ScreenCapture : IDisposable {
 
     public readonly record struct CaptureInfo(int screen, int x, int y, int width, int height);
 
-    public ScreenCapture(Configuration config, IReadOnlyList<int> ledCounts) {
+    public ScreenCapture(ScreenCaptureConfig config, IReadOnlyList<int> ledCounts) {
         this.config = config;
         Reload(ledCounts);
     }

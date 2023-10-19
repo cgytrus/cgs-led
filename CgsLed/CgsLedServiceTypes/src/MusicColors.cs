@@ -1,6 +1,6 @@
 ﻿using CgsLedController;
 
-namespace CgsLedService;
+namespace CgsLedServiceTypes;
 
 public readonly record struct MusicColors(
     float hueSpeed = 5f,

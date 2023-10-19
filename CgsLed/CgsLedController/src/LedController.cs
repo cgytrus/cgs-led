@@ -4,8 +4,7 @@ using System.Globalization;
 namespace CgsLedController;
 
 public class LedController {
-    public record Configuration(float brightness, bool showFps);
-    public Configuration config { get; set; }
+    public LedControllerConfig config { get; set; }
 
     public static TimeSpan time => stopwatch.Elapsed;
 
@@ -24,7 +23,7 @@ public class LedController {
     private int _frames;
     private const float FpsFrequency = 1f;
 
-    public LedController(Configuration config, LedWriter writer) {
+    public LedController(LedControllerConfig config, LedWriter writer) {
         this.config = config;
         _writer = writer;
         _writer.brightness = config.brightness;
