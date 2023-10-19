@@ -8,6 +8,7 @@ namespace CgsLedConsole;
 
 internal static class Program {
     private static BinaryWriter _writer = null!;
+    private static BinaryReader _reader = null!;
     private static readonly CommandNode commands = new("", new CommandNode[] {
         new("start", _ => _writer.Write((byte)MessageType.Start)),
         new("stop", _ => _writer.Write((byte)MessageType.Stop)),
@@ -17,23 +18,20 @@ internal static class Program {
             _writer.Write(args[0]);
             _writer.Write(args[1]);
         }),
-        new("reload", _ => _writer.Write((byte)MessageType.Reload))
+        new("reload", _ => _writer.Write((byte)MessageType.Reload)),
+        new("config", args => {
+            _writer.Write((byte)MessageType.GetConfig);
+            _writer.Write(args.Length >= 1 ? args[0] : "");
+            Console.WriteLine(_reader.ReadString());
+        })
     });
 
     private static void Main(string[] args) {
-        using MemoryStream stream = new(1024);
-        using BinaryWriter writer = new(stream, Encoding.Default);
-        stream.Position = sizeof(int);
-        _writer = writer;
-        commands.Run(args);
-        _writer = null!;
-        stream.Position = 0;
-        writer.Write((int)stream.Length - sizeof(int));
-
-        IPEndPoint ip = new(IPAddress.Loopback, 42069);
         using TcpClient client = new();
-        client.Connect(ip);
-        using NetworkStream networkStream = client.GetStream();
-        stream.WriteTo(networkStream);
+        client.Connect(new IPEndPoint(IPAddress.Loopback, 42069));
+        using NetworkStream stream = client.GetStream();
+        _writer = new BinaryWriter(stream, Encoding.Default);
+        _reader = new BinaryReader(stream, Encoding.Default);
+        commands.Run(args);
     }
 }

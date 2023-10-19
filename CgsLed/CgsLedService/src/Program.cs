@@ -78,11 +78,9 @@ internal static class Program {
                 using TcpClient handler = listener.AcceptTcpClient();
                 using NetworkStream networkStream = handler.GetStream();
                 using BinaryReader reader = new(networkStream, Encoding.Default);
+                using BinaryWriter writer = new(networkStream, Encoding.Default);
                 try {
-                    while(networkStream.Socket.Available < 4) { }
-                    int readLength = reader.ReadInt32();
-                    while(networkStream.Socket.Available < readLength) { }
-                    ReadMessage(reader);
+                    ReadMessage(reader, writer);
                 }
                 catch(Exception ex) {
                     Console.WriteLine("Failed to read message:");
@@ -96,7 +94,7 @@ internal static class Program {
         }
     }
 
-    private static void ReadMessage(BinaryReader reader) {
+    private static void ReadMessage(BinaryReader reader, BinaryWriter writer) {
         switch((MessageType)reader.ReadByte()) {
             case MessageType.Start:
                 Start();
@@ -113,6 +111,9 @@ internal static class Program {
                 break;
             case MessageType.Reload:
                 Reload();
+                break;
+            case MessageType.GetConfig:
+                writer.Write(GetConfig(reader.ReadString()));
                 break;
             default:
                 Console.WriteLine("Unknown message");
@@ -206,5 +207,17 @@ internal static class Program {
         Directory.CreateDirectory(dir);
         File.WriteAllText(configPath, JsonSerializer.Serialize(current, jsonOpts));
         return current;
+    }
+
+    private static string GetConfig(string path) {
+        switch(path) {
+            case "main": return Path.Combine(configDir, MainConfigName);
+            case "screen": return Path.Combine(configDir, ScreenCaptureConfigName);
+            case "mode": return modesConfigDir;
+        }
+        if(!path.StartsWith("mode/", StringComparison.Ordinal))
+            return configDir;
+        string mode = path[5..];
+        return modes.ContainsKey(mode) ? Path.Combine(modesConfigDir, $"{mode}.json") : modesConfigDir;
     }
 }

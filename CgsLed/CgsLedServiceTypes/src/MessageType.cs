@@ -5,5 +5,6 @@ public enum MessageType : byte {
     Stop,
     Quit,
     SetMode,
-    Reload
+    Reload,
+    GetConfig
 }
