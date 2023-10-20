@@ -10,7 +10,7 @@ public abstract class LedMode {
     public virtual void StopMode() { }
 
     public virtual void Update() { }
-    public abstract void Draw(LedWriter writer, int strip);
+    public abstract void Draw(LedBuffer buffer, int strip);
 }
 
 [PublicAPI]

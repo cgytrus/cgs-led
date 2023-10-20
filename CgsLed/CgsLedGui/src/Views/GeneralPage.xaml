@@ -10,9 +10,6 @@
 
     <StackPanel Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Left">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
-            <Button x:Name="startStop" Click="StartStop_OnClick">Start</Button>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
             <Slider x:Name="brightness" Header="Brightness" Minimum="0" Maximum="100" Width="200"
                     Orientation="Horizontal" TickPlacement="Outside" TickFrequency="25" />
         </StackPanel>

@@ -11,13 +11,7 @@ internal static class Program {
     private static BinaryWriter _writer = null!;
     private static BinaryReader _reader = null!;
     private static readonly CommandNode commands = new("", new CommandNode[] {
-        new("start", _ => _writer.Write((byte)MessageType.Start)),
-        new("stop", _ => _writer.Write((byte)MessageType.Stop)),
         new("quit", _ => _writer.Write((byte)MessageType.Quit)),
-        new("running", _ => {
-            _writer.Write((byte)MessageType.GetRunning);
-            Console.WriteLine(_reader.ReadBoolean() ? "running" : "stopped");
-        }),
         new("mode", args => {
             switch(args.Length) {
                 case 0:
@@ -30,7 +24,7 @@ internal static class Program {
                         Console.WriteLine($"{strip} {mode}");
                     }
                     if(count == 0)
-                        Console.WriteLine("stopped or no strips");
+                        Console.WriteLine("no strips");
                     break;
                 case 1:
                     _writer.Write((byte)MessageType.GetMode);

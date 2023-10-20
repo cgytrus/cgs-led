@@ -13,36 +13,11 @@ public sealed partial class GeneralPage {
         InitializeComponent();
         {
             using App.IpcContext context = App.GetIpc();
-            context.writer.Write((byte)MessageType.GetRunning);
-            startStop.Content = context.reader.ReadBoolean() ? "Stop" : "Start";
-        }
-        {
-            using App.IpcContext context = App.GetIpc();
             context.writer.Write((byte)MessageType.GetConfig);
             context.writer.Write("main");
             _config = ConfigFile.LoadOrSave(context.reader.ReadString(), _config);
         }
         brightness.Value = _config.brightness * 100d;
-    }
-
-    private void StartStop_OnClick(object sender, RoutedEventArgs e) {
-        bool running;
-        {
-            using App.IpcContext context = App.GetIpc();
-            context.writer.Write((byte)MessageType.GetRunning);
-            running = context.reader.ReadBoolean();
-        }
-
-        if(running) {
-            startStop.Content = "Stop";
-            using App.IpcContext context = App.GetIpc();
-            context.writer.Write((byte)MessageType.Stop);
-        }
-        else {
-            startStop.Content = "Start";
-            using App.IpcContext context = App.GetIpc();
-            context.writer.Write((byte)MessageType.Start);
-        }
     }
 
     private void Apply_OnClick(object sender, RoutedEventArgs e) {

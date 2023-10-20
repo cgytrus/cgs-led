@@ -5,39 +5,40 @@ namespace CgsLedController;
 
 public class LedController {
     public LedControllerConfig config { get; set; }
+    public LedBuffer buffer { get; }
 
     public static TimeSpan time => stopwatch.Elapsed;
 
     private static readonly Stopwatch stopwatch = Stopwatch.StartNew();
 
+    private bool _running;
     private bool _stopping;
+    private Action? _onStop;
 
     private readonly HashSet<LedMode> _modes = new();
     private readonly LedMode?[] _modeMap;
     private readonly List<Action> _schedule = new();
     private readonly object _scheduleLock = new();
 
-    private readonly LedWriter _writer;
-
     private readonly Stopwatch _fpsTimer = Stopwatch.StartNew();
     private int _frames;
     private const float FpsFrequency = 1f;
 
-    public LedController(LedControllerConfig config, LedWriter writer) {
+    public LedController(LedControllerConfig config, LedBuffer buffer) {
         this.config = config;
-        _writer = writer;
-        _writer.brightness = config.brightness;
-        _modeMap = new LedMode?[writer.ledCounts.Count];
+        this.buffer = buffer;
+        this.buffer.brightness = config.brightness;
+        _modeMap = new LedMode?[buffer.ledCounts.Count];
     }
 
     public void Start() {
-        _writer.Open();
+        _running = true;
         Thread thread = new(MainThread);
         thread.Start();
     }
 
     private void MainThread() {
-        while(_writer.isOpen)
+        while(_running)
             Update();
         foreach(LedMode mode in _modes)
             mode.StopMode();
@@ -54,14 +55,17 @@ public class LedController {
         if(_modes.Count != 0) {
             foreach(LedMode mode in _modes)
                 mode.Update();
-            _writer.Write((byte)DataType.Data);
+            buffer.Write((byte)DataType.Data);
             for(int strip = 0; strip < _modeMap.Length; strip++)
                 DrawStrip(strip);
         }
 
-        _writer.Send();
-        if(_stopping)
-            _writer.Close();
+        buffer.Send();
+        if(_stopping) {
+            _running = false;
+            _onStop?.Invoke();
+            _onStop = null;
+        }
 
         if(_modes.Count == 0)
             Thread.Sleep(1000);
@@ -72,10 +76,10 @@ public class LedController {
     private void DrawStrip(int strip) {
         LedMode? mode = _modeMap[strip];
         if(mode is null)
-            for(int i = 0; i < _writer.ledCounts[strip]; i++)
-                _writer.Write(0, 0, 0);
+            for(int i = 0; i < buffer.ledCounts[strip]; i++)
+                buffer.Write(0, 0, 0);
         else
-            mode.Draw(_writer, strip);
+            mode.Draw(buffer, strip);
     }
 
     private void UpdateFps() {
@@ -90,8 +94,17 @@ public class LedController {
         _frames = 0;
     }
 
-    public void Stop() {
-        _writer.doPing = false;
+    public void Stop(Action? onStop) {
+        if(_onStop is null)
+            _onStop = onStop;
+        else if(onStop is not null) {
+            Action prevOnStop = _onStop;
+            _onStop = () => {
+                prevOnStop();
+                onStop();
+            };
+        }
+        buffer.doPing = false;
         SetMode(null);
         _stopping = true;
     }
@@ -130,8 +143,8 @@ public class LedController {
                 _modes.Add(mode);
         foreach(LedMode mode in _modes)
             mode.Start();
-        _writer.Write((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
-        _writer.brightness = config.brightness;
+        buffer.Write((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
+        buffer.brightness = config.brightness;
     }
 
     private void ScheduleAction(Action action) {

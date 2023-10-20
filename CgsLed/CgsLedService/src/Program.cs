@@ -27,6 +27,7 @@ using ScreenCapture = Helpers.ScreenCapture;
 
 internal static class Program {
     private const string PortName = "COM2";
+    private const int BaudRate = 2000000;
 
     private static readonly string configDir =
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
@@ -37,7 +38,9 @@ internal static class Program {
     private static bool _running = true;
 
     private static readonly IReadOnlyList<int> ledCounts = new int[] { 177, 82, 30 };
-    private static LedController? _led;
+    private static readonly LedController led = new(new LedControllerConfig(), new LedBuffer(ledCounts));
+    private static readonly SerialPortLedWriter serialWriter =
+        new(new SerialPort(PortName, BaudRate, Parity.None, 8, StopBits.One));
 
     private static readonly IReadOnlyDictionary<string, int> aliases = new Dictionary<string, int> {
         { "window", 0 }, { "win", 0 }, { "w", 0 },
@@ -78,36 +81,35 @@ internal static class Program {
 
     private static readonly IReadOnlyDictionary<MessageType, Action<IpcContext>> handlers =
         new Dictionary<MessageType, Action<IpcContext>> {
-            { MessageType.Start, client => {
-                Start();
-                client.Dispose();
-            } },
-            { MessageType.Stop, client => {
-                Stop();
-                client.Dispose();
-            } },
             { MessageType.Quit, client => {
-                Stop();
                 _running = false;
-                client.Dispose();
-            } },
-            { MessageType.GetRunning, client => {
-                client.writer.Write(_led is not null);
                 client.Dispose();
             } },
             { MessageType.GetModes, client => {
                 GetModes(modes => {
-                    client.writer.Write(modes.Count);
-                    foreach((string mode, string strip) in modes) {
-                        client.writer.Write(mode);
-                        client.writer.Write(strip);
+                    try {
+                        client.writer.Write(modes.Count);
+                        foreach((string mode, string strip) in modes) {
+                            client.writer.Write(mode);
+                            client.writer.Write(strip);
+                        }
+                    }
+                    catch(Exception ex) {
+                        Console.WriteLine("Failed to read message:");
+                        Console.WriteLine(ex.ToString());
                     }
                     client.Dispose();
                 });
             } },
             { MessageType.GetMode, client => {
                 GetMode(client.reader.ReadString(), mode => {
-                    client.writer.Write(mode);
+                    try {
+                        client.writer.Write(mode);
+                    }
+                    catch(Exception ex) {
+                        Console.WriteLine("Failed to read message:");
+                        Console.WriteLine(ex.ToString());
+                    }
                     client.Dispose();
                 });
             } },
@@ -132,12 +134,18 @@ internal static class Program {
         };
 
     private static void Main() {
-        Start();
+        Console.WriteLine($"Starting on port {PortName} with baud rate {BaudRate}");
+        led.buffer.writers.Add(serialWriter);
+        serialWriter.Open();
+        while(!serialWriter.isOpen)
+            Thread.Sleep(10);
+        led.Start();
+        Console.WriteLine("Ready");
+
         Reload();
         SetMode("fire", "all");
 
-        IPEndPoint ip = new(IPAddress.Loopback, 42069);
-        TcpListener listener = new(ip);
+        TcpListener listener = new(new IPEndPoint(IPAddress.Loopback, 42069));
         try {
             listener.Start();
 
@@ -161,97 +169,57 @@ internal static class Program {
                 catch(Exception ex) {
                     Console.WriteLine("Failed to read message:");
                     Console.WriteLine(ex.ToString());
+                    context.Dispose();
                 }
             }
         }
         finally {
+            Console.WriteLine("Stopping...");
             listener.Stop();
-            _led?.Stop();
+            led.Stop(() => {
+                serialWriter.Close();
+                while(serialWriter.isOpen)
+                    Thread.Sleep(10);
+                Console.WriteLine("Stopped");
+            });
         }
     }
 
-    private static void Start() {
-        const int baudRate = 2000000;
-        Console.WriteLine($"Starting on port {PortName} with baud rate {baudRate}");
-        SerialPort port = new(PortName, baudRate, Parity.None, 8, StopBits.One);
-        _led = new LedController(new LedControllerConfig(), new SerialPortLedWriter(ledCounts, port));
-        _led.Start();
-        Console.WriteLine("Ready");
-    }
-
-    private static void Stop() {
-        Console.WriteLine("Stopping...");
-        _led?.Stop();
-        _led = null;
-        Console.WriteLine("Stopped");
-    }
-
-    [MemberNotNullWhen(true, nameof(_led))]
-    private static bool CheckRunning() {
-        if(_led is not null)
-            return true;
-        Console.WriteLine("Not running");
-        return false;
-    }
-
     private static void SetMode(string mode, string strip) {
-        if(!CheckRunning() || !modes.TryGetValue(mode, out LedMode? ledMode))
+        if(!modes.TryGetValue(mode, out LedMode? ledMode))
             return;
         if(strip == "all") {
             Console.WriteLine($"Setting mode to {mode.ToLower()}");
-            _led.SetMode(ledMode);
+            led.SetMode(ledMode);
             return;
         }
         if(!aliases.TryGetValue(strip, out int i) && !int.TryParse(strip, out i))
             return;
         Console.WriteLine($"Setting strip {i} mode to {mode.ToLower()}");
-        _led.SetMode(i, ledMode);
+        led.SetMode(i, ledMode);
     }
 
     private static void GetModes(Action<IList<(string mode, string strip)>> callback) {
-        if(!CheckRunning()) {
-            callback(ImmutableList<(string mode, string strip)>.Empty);
-            return;
-        }
-        _led.GetModes(raw => {
-            try {
-                callback(raw.Select((mode, strip) =>
-                    (mode is null ? "off" : inverseModes[mode], inverseAliases[strip])).ToList());
-            }
-            catch(Exception ex) {
-                Console.WriteLine("Failed to read message:");
-                Console.WriteLine(ex.ToString());
-            }
+        led.GetModes(raw => {
+            callback(raw.Select((mode, strip) =>
+                (mode is null ? "off" : inverseModes[mode], inverseAliases[strip])).ToList());
         });
     }
 
     private static void GetMode(string strip, Action<string> callback) {
-        if(!CheckRunning()) {
-            callback(string.Empty);
-            return;
-        }
-        _led.GetModes(raw => {
-            try {
-                if(!aliases.TryGetValue(strip, out int i) && !int.TryParse(strip, out i)) {
-                    callback("wrong strip");
-                    return;
-                }
-                LedMode? mode = raw[i];
-                callback(mode is null ? "off" : inverseModes[mode]);
+        led.GetModes(raw => {
+            if(!aliases.TryGetValue(strip, out int i) && !int.TryParse(strip, out i)) {
+                callback("wrong strip");
+                return;
             }
-            catch(Exception ex) {
-                Console.WriteLine("Failed to read message:");
-                Console.WriteLine(ex.ToString());
-            }
+            LedMode? mode = raw[i];
+            callback(mode is null ? "off" : inverseModes[mode]);
         });
     }
 
     private static void Reload() {
-        if(!CheckRunning())
-            return;
-
         Console.WriteLine("Reloading main config");
-        _led.config = ConfigFile.LoadOrSave(configDir, MainConfigName, _led.config);
+        led.config = ConfigFile.LoadOrSave(configDir, MainConfigName, led.config);
 
         Console.WriteLine("Reloading screen capture config");
         screenCapture.config = ConfigFile.LoadOrSave(configDir, ScreenCaptureConfigName, screenCapture.config);
@@ -261,7 +229,7 @@ internal static class Program {
             ReloadMode(mode);
 
         Console.WriteLine("Restarting modes");
-        _led.Reload();
+        led.Reload();
     }
 
     private static void ReloadMode(string mode) {

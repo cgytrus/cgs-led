@@ -37,9 +37,9 @@ public sealed class VuMode : LedMode<VuModeConfig> {
     private float GetDisplay(int channel) =>
         _display[channel] - config.falloffSpeed * (float)(time - _lastDisplayTimes[channel]).TotalSeconds;
 
-    public override void Draw(LedWriter writer, int strip) {
-        int ledCount = writer.ledCounts[strip];
-        int rightCount = writer.halfLedCounts[strip];
+    public override void Draw(LedBuffer buffer, int strip) {
+        int ledCount = buffer.ledCounts[strip];
+        int rightCount = buffer.halfLedCounts[strip];
         int leftCount = ledCount - rightCount;
 
         Span<float> hues = stackalloc float[ledCount];
@@ -54,6 +54,6 @@ public sealed class VuMode : LedMode<VuModeConfig> {
             values[ledCount - i - 1] = Math.Clamp(GetDisplay(1) * rightCount - i, 0f, 1f);
         }
 
-        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
+        config.colors.Write(buffer, strip, (float)time.TotalSeconds, hues, values);
     }
 }

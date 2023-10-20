@@ -53,14 +53,14 @@ public class FftMode : LedMode<FftModeConfig> {
         _fftAddCounter++;
     }
 
-    public override void Draw(LedWriter writer, int strip) {
+    public override void Draw(LedBuffer buffer, int strip) {
         if(_rawFft is null)
             return;
 
         _fftReady = false;
 
-        int fullLedCount = writer.ledCounts[strip];
-        int ledCount = config.mirror ? writer.halfLedCounts[strip] : fullLedCount;
+        int fullLedCount = buffer.ledCounts[strip];
+        int ledCount = config.mirror ? buffer.halfLedCounts[strip] : fullLedCount;
 
         Span<float> hues = stackalloc float[fullLedCount];
         Span<float> values = stackalloc float[fullLedCount];
@@ -84,7 +84,7 @@ public class FftMode : LedMode<FftModeConfig> {
             values[fullLedCount - i - 1] = bin;
         }
 
-        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
+        config.colors.Write(buffer, strip, (float)time.TotalSeconds, hues, values);
 
         _newFrame = true;
         _fftReady = true;

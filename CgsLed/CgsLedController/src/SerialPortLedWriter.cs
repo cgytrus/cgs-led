@@ -8,7 +8,7 @@ public class SerialPortLedWriter : LedWriter {
     private readonly SerialPort _port;
     private bool _canContinue = true;
 
-    public SerialPortLedWriter(IReadOnlyList<int> ledCounts, SerialPort port) : base(ledCounts) => _port = port;
+    public SerialPortLedWriter(SerialPort port) => _port = port;
 
     public override void Open() {
         _port.DtrEnable = true;
@@ -28,8 +28,8 @@ public class SerialPortLedWriter : LedWriter {
         _port.Close();
     }
 
-    protected override void Ping() {
-        Write((byte)DataType.Ping);
+    public override void Ping(LedBuffer buffer) {
+        buffer.Write((byte)DataType.Ping);
         while(_port.BytesToWrite > 0) { }
         while(!_canContinue) {
             while(_port.BytesToRead > 0) {
@@ -40,5 +40,5 @@ public class SerialPortLedWriter : LedWriter {
         _canContinue = false;
     }
 
-    protected override void WriteInternal(byte[] bytes, int count) => _port.Write(bytes, 0, count);
+    public override void Write(byte[] bytes, int count) => _port.Write(bytes, 0, count);
 }

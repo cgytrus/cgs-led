@@ -62,11 +62,11 @@ public sealed class WaveformMode : LedMode<WaveformModeConfig> {
             _showDisplayTail = Math.Min(_displayTail, _samples.Count);
         }
     }
-    public override void Draw(LedWriter writer, int strip) {
+    public override void Draw(LedBuffer buffer, int strip) {
         if(_samples is null)
             return;
 
-        int ledCount = writer.ledCounts[strip];
+        int ledCount = buffer.ledCounts[strip];
 
         Span<float> hues = stackalloc float[ledCount];
         Span<float> values = stackalloc float[ledCount];
@@ -83,6 +83,6 @@ public sealed class WaveformMode : LedMode<WaveformModeConfig> {
             }
         }
 
-        config.colors.Write(writer, strip, (float)time.TotalSeconds, hues, values);
+        config.colors.Write(buffer, strip, (float)time.TotalSeconds, hues, values);
     }
 }

@@ -12,8 +12,8 @@ public class AmbilightMode : LedMode {
     public AmbilightMode(ScreenCapture screenCapture) => _screenCapture = screenCapture;
 
     public override void Update() => _screenCapture.Update();
-    public override void Draw(LedWriter writer, int strip) {
-        int pixelCount = writer.ledCounts[strip];
+    public override void Draw(LedBuffer buffer, int strip) {
+        int pixelCount = buffer.ledCounts[strip];
 
         IReadOnlyList<CaptureZone> captures = _screenCapture.captures;
         CaptureZone capture;
@@ -45,7 +45,7 @@ public class AmbilightMode : LedMode {
                 avgG /= avgCount;
                 avgB /= avgCount;
 
-                writer.WriteRgb((byte)avgR, (byte)avgG, (byte)avgB, true);
+                buffer.WriteRgb((byte)avgR, (byte)avgG, (byte)avgB, true);
             }
         }
     }
