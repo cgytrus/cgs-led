@@ -12,6 +12,22 @@ internal static class Program {
     private static BinaryReader _reader = null!;
     private static readonly CommandNode commands = new("", new CommandNode[] {
         new("quit", _ => _writer.Write((byte)MessageType.Quit)),
+        new("strips", _ => {
+            _writer.Write((byte)MessageType.GetStrips);
+            int count = _reader.ReadInt32();
+            for(int i = 0; i < count; i++) {
+                Console.Write(i);
+                Console.Write(' ');
+                int aliasCount = _reader.ReadInt32();
+                for(int j = 0; j < aliasCount; j++) {
+                    Console.Write(_reader.ReadString());
+                    Console.Write(' ');
+                }
+                Console.WriteLine(_reader.ReadInt32());
+            }
+            if(count == 0)
+                Console.WriteLine("no strips");
+        }),
         new("mode", args => {
             switch(args.Length) {
                 case 0:

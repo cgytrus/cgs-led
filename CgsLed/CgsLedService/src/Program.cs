@@ -42,16 +42,19 @@ internal static class Program {
     private static readonly SerialPortLedWriter serialWriter =
         new(new SerialPort(PortName, BaudRate, Parity.None, 8, StopBits.One));
 
-    private static readonly IReadOnlyDictionary<string, int> aliases = new Dictionary<string, int> {
-        { "window", 0 }, { "win", 0 }, { "w", 0 },
-        { "door", 1 }, { "d", 1 },
-        { "monitor", 2 }, { "mon", 2 }, { "m", 2 }
+    private static readonly IReadOnlyDictionary<int, string[]> inverseAliases = new Dictionary<int, string[]> {
+        { 0, new string[] { "window", "win", "w" } },
+        { 1, new string[] { "door", "d" } },
+        { 2, new string[] { "monitor", "mon", "m" } }
     };
-    private static readonly IReadOnlyDictionary<int, string> inverseAliases = new Dictionary<int, string> {
-        { 0, "window" },
-        { 1, "door" },
-        { 2, "monitor" }
-    };
+    private static readonly IReadOnlyDictionary<string, int> aliases =
+        new Func<IReadOnlyDictionary<string, int>>(() => {
+            Dictionary<string, int> aliases = new();
+            foreach((int i, string[] values) in inverseAliases)
+                foreach(string alias in values)
+                    aliases.Add(alias, i);
+            return aliases;
+        })();
 
     private static readonly AudioCapture audioCapture = new();
     private static readonly ScreenCapture screenCapture = new(new ScreenCaptureConfig(), ledCounts);
@@ -83,6 +86,18 @@ internal static class Program {
         new Dictionary<MessageType, Action<IpcContext>> {
             { MessageType.Quit, context => {
                 _running = false;
+                context.Dispose();
+            } },
+            { MessageType.GetStrips, context => {
+                context.writer.Write(ledCounts.Count);
+                for(int i = 0; i < ledCounts.Count; i++) {
+                    if(!inverseAliases.TryGetValue(i, out string[]? aliases))
+                        aliases = Array.Empty<string>();
+                    context.writer.Write(aliases.Length);
+                    foreach(string alias in aliases)
+                        context.writer.Write(alias);
+                    context.writer.Write(ledCounts[i]);
+                }
                 context.Dispose();
             } },
             { MessageType.GetModes, context => {
@@ -202,7 +217,7 @@ internal static class Program {
     private static void GetModes(Action<IList<(string mode, string strip)>> callback) {
         led.GetModes(raw => {
             callback(raw.Select((mode, strip) =>
-                (mode is null ? "off" : inverseModes[mode], inverseAliases[strip])).ToList());
+                (mode is null ? "off" : inverseModes[mode], inverseAliases[strip][0])).ToList());
         });
     }
 

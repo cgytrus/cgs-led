@@ -2,6 +2,7 @@
 
 public enum MessageType : byte {
     Quit,
+    GetStrips,
     GetModes,
     GetMode,
     SetMode,
