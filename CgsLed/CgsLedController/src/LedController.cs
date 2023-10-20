@@ -34,7 +34,9 @@ public class LedController {
 
     public void Start() {
         _running = true;
-        Thread thread = new(MainThread);
+        Thread thread = new(MainThread) {
+            Name = "Led Controller Thread"
+        };
         thread.Start();
     }
 
