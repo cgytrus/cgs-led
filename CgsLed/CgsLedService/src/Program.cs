@@ -81,55 +81,55 @@ internal static class Program {
 
     private static readonly IReadOnlyDictionary<MessageType, Action<IpcContext>> handlers =
         new Dictionary<MessageType, Action<IpcContext>> {
-            { MessageType.Quit, client => {
+            { MessageType.Quit, context => {
                 _running = false;
-                client.Dispose();
+                context.Dispose();
             } },
-            { MessageType.GetModes, client => {
+            { MessageType.GetModes, context => {
                 GetModes(modes => {
                     try {
-                        client.writer.Write(modes.Count);
+                        context.writer.Write(modes.Count);
                         foreach((string mode, string strip) in modes) {
-                            client.writer.Write(mode);
-                            client.writer.Write(strip);
+                            context.writer.Write(mode);
+                            context.writer.Write(strip);
                         }
                     }
                     catch(Exception ex) {
                         Console.WriteLine("Failed to read message:");
                         Console.WriteLine(ex.ToString());
                     }
-                    client.Dispose();
+                    context.Dispose();
                 });
             } },
-            { MessageType.GetMode, client => {
-                GetMode(client.reader.ReadString(), mode => {
+            { MessageType.GetMode, context => {
+                GetMode(context.reader.ReadString(), mode => {
                     try {
-                        client.writer.Write(mode);
+                        context.writer.Write(mode);
                     }
                     catch(Exception ex) {
                         Console.WriteLine("Failed to read message:");
                         Console.WriteLine(ex.ToString());
                     }
-                    client.Dispose();
+                    context.Dispose();
                 });
             } },
-            { MessageType.SetMode, client => {
-                SetMode(client.reader.ReadString(), client.reader.ReadString());
-                client.Dispose();
+            { MessageType.SetMode, context => {
+                SetMode(context.reader.ReadString(), context.reader.ReadString());
+                context.Dispose();
             } },
-            { MessageType.Reload, client => {
+            { MessageType.Reload, context => {
                 Reload();
-                client.Dispose();
+                context.Dispose();
             } },
-            { MessageType.GetConfig, client => {
-                client.writer.Write(GetConfig(client.reader.ReadString()));
-                client.Dispose();
+            { MessageType.GetConfig, context => {
+                context.writer.Write(GetConfig(context.reader.ReadString()));
+                context.Dispose();
             } },
-            { MessageType.GetScreens, client => {
-                client.writer.Write(screenCapture.screenCaptures.Count);
+            { MessageType.GetScreens, context => {
+                context.writer.Write(screenCapture.screenCaptures.Count);
                 foreach(IScreenCapture capture in screenCapture.screenCaptures)
-                    client.writer.Write(capture.Display.DeviceName);
-                client.Dispose();
+                    context.writer.Write(capture.Display.DeviceName);
+                context.Dispose();
             } }
         };
 
