@@ -7,5 +7,5 @@ public abstract class LedWriter {
     public abstract bool isOpen { get; }
 
     public abstract void Ping(LedBuffer buffer);
-    public abstract void Write(byte[] bytes, int count);
+    public abstract void Write(LedBuffer.LedData[] data, int count, float brightness);
 }

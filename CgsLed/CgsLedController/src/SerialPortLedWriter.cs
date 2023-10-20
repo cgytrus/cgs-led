@@ -8,6 +8,9 @@ public class SerialPortLedWriter : LedWriter {
     private readonly SerialPort _port;
     private bool _canContinue = true;
 
+    // SerialPort API is stupid and doesn't let me write a span....
+    private readonly byte[] _bytes = new byte[1024];
+
     public SerialPortLedWriter(SerialPort port) => _port = port;
 
     public void Open() {
@@ -40,5 +43,9 @@ public class SerialPortLedWriter : LedWriter {
         _canContinue = false;
     }
 
-    public override void Write(byte[] bytes, int count) => _port.Write(bytes, 0, count);
+    public override void Write(LedBuffer.LedData[] data, int count, float brightness) {
+        for(int i = 0; i < count; i++)
+            _bytes[i] = data[i].Get(brightness);
+        _port.Write(_bytes, 0, count);
+    }
 }

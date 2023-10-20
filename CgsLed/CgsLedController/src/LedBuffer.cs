@@ -11,7 +11,18 @@ public class LedBuffer {
     public IReadOnlyList<int> halfLedCounts { get; }
     public IReadOnlyList<int> halfLedStarts { get; }
 
-    private readonly byte[] _ledData = new byte[1024];
+    public readonly record struct LedData(byte data, bool useGamma, bool useBrightness) {
+        public byte Get(float brightness) {
+            byte res = data;
+            if(useGamma)
+                res = gamma8[res];
+            if(useBrightness)
+                res = (byte)(res * brightness);
+            return res;
+        }
+    }
+
+    private readonly LedData[] _ledData = new LedData[1024];
     private int _totalDataCount;
 
     public LedBuffer(IReadOnlyList<int> ledCounts) {
@@ -35,23 +46,31 @@ public class LedBuffer {
         foreach(LedWriter writer in writers) {
             if(doPing)
                 writer.Ping(this);
-            writer.Write(_ledData, _totalDataCount);
+            writer.Write(_ledData, _totalDataCount, brightness);
         }
         _totalDataCount = 0;
     }
 
     public void Write(byte value) {
-        _ledData[_totalDataCount] = value;
+        _ledData[_totalDataCount] = new LedData(value, false, false);
         _totalDataCount++;
     }
 
     public void Write(byte a, byte b) {
-        _ledData[_totalDataCount] = a;
-        _ledData[_totalDataCount + 1] = b;
+        _ledData[_totalDataCount] = new LedData(a, false, false);
+        _ledData[_totalDataCount + 1] = new LedData(b, false, false);
         _totalDataCount += 2;
     }
 
     public void Write(byte a, byte b, byte c) {
+        Write(
+            new LedData(a, false, false),
+            new LedData(b, false, false),
+            new LedData(c, false, false)
+        );
+    }
+
+    private void Write(LedData a, LedData b, LedData c) {
         _ledData[_totalDataCount] = a;
         _ledData[_totalDataCount + 1] = b;
         _ledData[_totalDataCount + 2] = c;
@@ -97,15 +116,11 @@ public class LedBuffer {
         223, 225, 227, 229, 231, 234, 236, 238, 240, 242, 244, 246, 248, 251, 253, 255
     };
     public void WriteRgb(byte r, byte g, byte b, bool gamma) {
-        if(gamma) {
-            r = gamma8[r];
-            g = gamma8[g];
-            b = gamma8[b];
-        }
-        r = (byte)(r * brightness);
-        g = (byte)(g * brightness);
-        b = (byte)(b * brightness);
-        Write(r, g, b);
+        Write(
+            new LedData(r, gamma, true),
+            new LedData(g, gamma, true),
+            new LedData(b, gamma, true)
+        );
     }
     public void WriteHsv(float h, float s, float v, bool gamma) {
         float r;
