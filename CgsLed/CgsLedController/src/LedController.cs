@@ -15,6 +15,7 @@ public class LedController {
     private bool _stopping;
     private Action? _onStop;
 
+    private readonly List<LedWriter> _writers = new();
     private readonly HashSet<LedMode> _modes = new();
     private readonly LedMode?[] _modeMap;
     private readonly List<Action> _schedule = new();
@@ -60,7 +61,14 @@ public class LedController {
                 DrawStrip(strip);
         }
 
-        buffer.Send();
+        _writers.RemoveAll(writer => {
+            if(writer.isOpen)
+                return false;
+            if(writer is IDisposable disposable)
+                disposable.Dispose();
+            return true;
+        });
+        buffer.Send(_writers);
         if(_stopping) {
             _running = false;
             _onStop?.Invoke();
@@ -107,6 +115,12 @@ public class LedController {
         buffer.doPing = false;
         SetMode(null);
         _stopping = true;
+    }
+
+    public void AddWriter(LedWriter writer) {
+        ScheduleAction(() => {
+            _writers.Add(writer);
+        });
     }
 
     public void SetMode(LedMode? mode) {

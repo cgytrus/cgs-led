@@ -8,5 +8,6 @@ public enum MessageType : byte {
     SetMode,
     Reload,
     GetConfig,
-    GetScreens
+    GetScreens,
+    StreamLeds
 }

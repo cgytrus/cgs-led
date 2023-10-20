@@ -71,17 +71,6 @@ internal static class Program {
     private static readonly IReadOnlyDictionary<LedMode, string> inverseModes =
         modes.Skip(1).ToDictionary(pair => pair.Value!, pair => pair.Key);
 
-    private readonly record struct IpcContext(TcpClient client, NetworkStream stream, BinaryReader reader,
-        BinaryWriter writer) : IDisposable {
-        public void Dispose() {
-            writer.Write((byte)0);
-            client.Dispose();
-            stream.Dispose();
-            reader.Dispose();
-            writer.Dispose();
-        }
-    }
-
     private static readonly IReadOnlyDictionary<MessageType, Action<IpcContext>> handlers =
         new Dictionary<MessageType, Action<IpcContext>> {
             { MessageType.Quit, context => {
@@ -145,12 +134,15 @@ internal static class Program {
                 foreach(IScreenCapture capture in screenCapture.screenCaptures)
                     context.writer.Write(capture.Display.DeviceName);
                 context.Dispose();
+            } },
+            { MessageType.StreamLeds, context => {
+                led.AddWriter(new IpcLedWriter(context));
             } }
         };
 
     private static void Main() {
         Console.WriteLine($"Starting on port {PortName} with baud rate {BaudRate}");
-        led.buffer.writers.Add(serialWriter);
+        led.AddWriter(serialWriter);
         serialWriter.Open();
         while(!serialWriter.isOpen)
             Thread.Sleep(10);

@@ -4,8 +4,6 @@ public class LedBuffer {
     public bool doPing { get; set; } = true;
     public float brightness { get; set; } = 1f;
 
-    public List<LedWriter> writers { get; } = new();
-
     public IReadOnlyList<int> ledCounts { get; }
     public int totalLedCount { get; }
     public int totalHalfLedCount { get; }
@@ -33,10 +31,8 @@ public class LedBuffer {
         this.halfLedStarts = halfLedStarts;
     }
 
-    public void Send() {
+    public void Send(IEnumerable<LedWriter> writers) {
         foreach(LedWriter writer in writers) {
-            if(!writer.isOpen)
-                continue;
             if(doPing)
                 writer.Ping(this);
             writer.Write(_ledData, _totalDataCount);

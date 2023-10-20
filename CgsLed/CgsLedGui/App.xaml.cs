@@ -21,7 +21,8 @@ public partial class App {
     public readonly record struct IpcContext(TcpClient client, NetworkStream stream, BinaryReader reader,
         BinaryWriter writer) : IDisposable {
         public void Dispose() {
-            reader.Read();
+            if(client.Connected)
+                reader.Read();
             client.Dispose();
             stream.Dispose();
             reader.Dispose();

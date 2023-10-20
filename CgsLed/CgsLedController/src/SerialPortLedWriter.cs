@@ -10,7 +10,7 @@ public class SerialPortLedWriter : LedWriter {
 
     public SerialPortLedWriter(SerialPort port) => _port = port;
 
-    public override void Open() {
+    public void Open() {
         _port.DtrEnable = true;
         _port.Open();
         // wait for arduino to reset
@@ -23,7 +23,7 @@ public class SerialPortLedWriter : LedWriter {
         }
     }
 
-    public override void Close() {
+    public void Close() {
         while(_port.BytesToWrite > 0) { }
         _port.Close();
     }
