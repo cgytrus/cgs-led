@@ -28,6 +28,13 @@ public partial class App {
             reader.Dispose();
             writer.Dispose();
         }
+
+        public void Flush() {
+            Span<byte> bytes = stackalloc byte[Math.Min(stream.Socket.Available, 256)];
+            while(stream.DataAvailable) {
+                _ = stream.Read(bytes);
+            }
+        }
     }
 
     public static IpcContext GetIpc() {

@@ -18,5 +18,6 @@
             <Button Click="Apply_OnClick">Apply</Button>
             <Button Click="Reload_OnClick">Reload</Button>
         </StackPanel>
+        <views:LedStripRenderer />
     </StackPanel>
 </Page>
