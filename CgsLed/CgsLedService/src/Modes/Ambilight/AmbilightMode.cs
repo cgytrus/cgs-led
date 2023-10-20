@@ -15,15 +15,14 @@ public class AmbilightMode : LedMode {
     public override void Draw(LedBuffer buffer, int strip) {
         int pixelCount = buffer.ledCounts[strip];
 
-        IReadOnlyList<CaptureZone> captures = _screenCapture.captures;
-        CaptureZone capture;
+        IReadOnlyList<ICaptureZone> captures = _screenCapture.captures;
+        ICaptureZone capture;
         lock(_screenCapture.capturesLock)
             capture = captures[strip];
-        lock(capture.Buffer) {
-            Span<byte> data = new(capture.Buffer);
+        using(capture.Lock()) {
+            IImage image = capture.Image;
             float width = (float)capture.Width / pixelCount;
 
-            int stride = capture.Stride;
             for(int i = 0; i < pixelCount; i++) {
                 uint avgR = 0;
                 uint avgG = 0;
@@ -33,10 +32,10 @@ public class AmbilightMode : LedMode {
                 uint avgCount = 0;
                 for(float x = startX; x < startX + width; x++) {
                     for(int y = 0; y < capture.Height; y++) {
-                        int index = y * stride + (int)x * capture.BytesPerPixel;
-                        avgR += data[index + 2];
-                        avgG += data[index + 1];
-                        avgB += data[index];
+                        IColor color = image[(int)x, y];
+                        avgR += color.R;
+                        avgG += color.G;
+                        avgB += color.B;
                         avgCount++;
                     }
                 }

@@ -13,14 +13,14 @@ public sealed partial class ScreenCapture : IDisposable {
     public ScreenCaptureConfig config { get; set; }
 
     public IReadOnlyList<IScreenCapture> screenCaptures => _screenCaptures;
-    public IReadOnlyList<CaptureZone> captures => _captures;
+    public IReadOnlyList<ICaptureZone> captures => _captures;
     public object capturesLock { get; } = new();
 
     private IScreenCaptureService _screenCaptureService;
     private IScreenCapture[] _screenCaptures;
 
-    private readonly Dictionary<CaptureZone, IScreenCapture> _captureZones = new();
-    private readonly List<CaptureZone> _captures = new();
+    private readonly Dictionary<ICaptureZone, IScreenCapture> _captureZones = new();
+    private readonly List<ICaptureZone> _captures = new();
     private readonly HashSet<IScreenCapture> _toUpdate = new();
 
     public readonly record struct CaptureInfo(int screen, int x, int y, int width, int height);
@@ -140,8 +140,8 @@ public sealed partial class ScreenCapture : IDisposable {
             Math.Min(rect.bottom - rect.top, screenCapture.Display.Height - captureY));
     }
 
-    private CaptureZone RegisterCaptureZone(CaptureInfo info, int width) {
-        CaptureZone zone = _screenCaptures[info.screen]
+    private ICaptureZone RegisterCaptureZone(CaptureInfo info, int width) {
+        ICaptureZone zone = _screenCaptures[info.screen]
             .RegisterCaptureZone(info.x, info.y, info.width, info.height, GetApproxDownscaleLevel(info.width, width));
         _captureZones[zone] = _screenCaptures[info.screen];
         UpdateToUpdate();
@@ -150,7 +150,7 @@ public sealed partial class ScreenCapture : IDisposable {
 
     private void UpdateToUpdate() {
         _toUpdate.Clear();
-        foreach((CaptureZone? _, IScreenCapture? capture) in _captureZones)
+        foreach((ICaptureZone? _, IScreenCapture? capture) in _captureZones)
             _toUpdate.Add(capture);
     }
 
