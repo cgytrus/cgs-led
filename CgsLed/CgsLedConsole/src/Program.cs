@@ -57,6 +57,10 @@ internal static class Program {
                     break;
             }
         }),
+        new("freddy", _ => {
+            using IpcContext context = GetIpc();
+            context.writer.Write((byte)MessageType.SetFreddy);
+        }),
         new("reload", _ => {
             using IpcContext context = GetIpc();
             context.writer.Write((byte)MessageType.Reload);

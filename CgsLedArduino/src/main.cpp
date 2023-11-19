@@ -49,6 +49,10 @@ pin_data pins[stripCount];
 uint8_t data[totalDataCount];
 bool pendingShow = false;
 
+bool freddy = false;
+bool freddyShown = true;
+const uint8_t freddyBrightness = 63;
+
 microLed<stripsOrder, pins, stripCount, data> led;
 
 void setup() {
@@ -60,13 +64,42 @@ void setup() {
     cli();
 }
 
+void showFreddy() {
+    size_t ledIndex = strips[0].size + strips[1].size / 3 / 2 * 3 - 10 * 3;
+    size_t ledIndex0 = ledIndex - 4 * 3;
+    size_t ledIndex1 = ledIndex + 4 * 3;
+    for(size_t i = 0; i < totalDataCount; i++)
+        data[i] = 0u;
+    data[ledIndex0] = freddyBrightness;
+    data[ledIndex0 + 1] = freddyBrightness;
+    data[ledIndex0 + 2] = freddyBrightness;
+    data[ledIndex1] = freddyBrightness;
+    data[ledIndex1 + 1] = freddyBrightness;
+    data[ledIndex1 + 2] = freddyBrightness;
+    led.show();
+    freddyShown = true;
+}
+void hideFreddy() {
+    for(size_t i = 0; i < totalDataCount; i++)
+        data[i] = 0u;
+    led.show();
+    freddyShown = false;
+}
+
 uint8_t readNext() {
     while(!uart::canRead()) { }
     return uart::read();
 }
 
 void readPower() {
-    digitalWrite(relayPin, readNext() == 0 ? LOW : HIGH);
+    auto value = readNext();
+    digitalWrite(relayPin, value == 0 ? LOW : HIGH);
+    freddy = value == 2;
+    if(freddy) {
+        delayMicroseconds(65535u);
+        delayMicroseconds(65535u);
+        showFreddy();
+    }
 }
 
 void readData() {
@@ -83,6 +116,17 @@ void readPing() {
 }
 
 void loop() {
+    // freddy fazbear mode har har har har har
+    if(freddy) {
+        if(freddyShown)
+            hideFreddy();
+        else
+            showFreddy();
+        int waitTime = freddyShown ? rand() % 65 : rand() % 17;
+        for (int i = 0; i < waitTime; i++)
+            delayMicroseconds(rand());
+    }
+
     if(!uart::canRead())
         return;
     switch(static_cast<DataType>(uart::read())) {

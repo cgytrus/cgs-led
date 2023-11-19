@@ -121,6 +121,10 @@ internal static class Program {
                 SetMode(context.reader.ReadString(), context.reader.ReadString());
                 context.Dispose();
             } },
+            { MessageType.SetFreddy, context => {
+                led.SetFreddy();
+                context.Dispose();
+            } },
             { MessageType.Reload, context => {
                 Reload();
                 context.Dispose();

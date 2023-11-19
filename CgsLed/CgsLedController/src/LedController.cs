@@ -147,10 +147,18 @@ public class LedController {
     }
 
     public void Reload() {
-        ScheduleAction(UpdateModes);
+        ScheduleAction(() => UpdateModes());
     }
 
-    private void UpdateModes() {
+    public void SetFreddy() {
+        ScheduleAction(() => {
+            for(int i = 0; i < _modeMap.Length; i++)
+                _modeMap[i] = null;
+            UpdateModes(2);
+        });
+    }
+
+    private void UpdateModes(byte power = 1) {
         foreach(LedMode mode in _modes)
             mode.StopMode();
         _modes.Clear();
@@ -159,7 +167,7 @@ public class LedController {
                 _modes.Add(mode);
         foreach(LedMode mode in _modes)
             mode.Start();
-        buffer.Write((byte)DataType.Power, _modes.Count == 0 ? (byte)0 : (byte)1);
+        buffer.Write((byte)DataType.Power, _modes.Count == 0 && power == 1 ? (byte)0 : power);
         buffer.brightness = config.brightness;
     }
 

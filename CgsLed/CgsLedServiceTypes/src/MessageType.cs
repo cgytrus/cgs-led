@@ -6,6 +6,7 @@ public enum MessageType : byte {
     GetModes,
     GetMode,
     SetMode,
+    SetFreddy,
     Reload,
     GetConfig,
     GetScreens,
