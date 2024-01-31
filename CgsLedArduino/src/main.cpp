@@ -49,9 +49,11 @@ pin_data pins[stripCount];
 uint8_t data[totalDataCount];
 bool pendingShow = false;
 
+// freddor
 bool freddy = false;
 bool freddyShown = true;
 const uint8_t freddyBrightness = 63;
+bool wasPowered = false;
 
 microLed<stripsOrder, pins, stripCount, data> led;
 
@@ -94,6 +96,7 @@ uint8_t readNext() {
 void readPower() {
     auto value = readNext();
     digitalWrite(relayPin, value == 0 ? LOW : HIGH);
+    wasPowered = value != 0;
     freddy = value == 2;
     if(freddy) {
         delayMicroseconds(65535u);
@@ -125,6 +128,10 @@ void loop() {
         int waitTime = freddyShown ? rand() % 65 : rand() % 17;
         for (int i = 0; i < waitTime; i++)
             delayMicroseconds(rand());
+        if (rand() % 100 == 0) {
+            freddy = false;
+            digitalWrite(relayPin, wasPowered ? HIGH : LOW);
+        }
     }
 
     if(!uart::canRead())
