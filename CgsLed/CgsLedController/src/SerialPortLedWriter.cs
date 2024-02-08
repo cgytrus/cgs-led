@@ -17,13 +17,13 @@ public class SerialPortLedWriter : LedWriter {
         _port.DtrEnable = true;
         _port.Open();
         // wait for arduino to reset
-        bool canContinue = false;
-        while(!canContinue) {
-            while(_port.BytesToRead > 0) {
-                if(_port.ReadByte() == 1)
-                    canContinue = true;
-            }
-        }
+        //bool canContinue = false;
+        //while(!canContinue) {
+        //    while(_port.BytesToRead > 0) {
+        //        if(_port.ReadByte() == 1)
+        //            canContinue = true;
+        //    }
+        //}
     }
 
     public void Close() {

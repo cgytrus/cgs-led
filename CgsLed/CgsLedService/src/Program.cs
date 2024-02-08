@@ -26,8 +26,8 @@ namespace CgsLedService;
 using ScreenCapture = Helpers.ScreenCapture;
 
 internal static class Program {
-    private const string PortName = "COM2";
-    private const int BaudRate = 2000000;
+    private const string PortName = "COM5";
+    private const int BaudRate = 12000000;
 
     private static readonly string configDir =
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
