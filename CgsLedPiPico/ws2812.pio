@@ -8,13 +8,12 @@
 ; cycle = 0.142857143
 
 .wrap_target
-    out x, 1       side 0     ; 1 0.125
+bitloop:
+    out x, 1       side 0 [3] ; 1 0.5
     jmp !x do_zero side 1 [2] ; 3 0.375
 do_one:
     jmp  bitloop   side 1 [2] ; 3 0.375
 do_zero:
-    nop            side 0 [2] ; 3 0.375
-bitloop:
     nop            side 0 [2] ; 3 0.375
 .wrap
 
@@ -30,7 +29,7 @@ static inline void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin) 
     sm_config_set_out_shift(&c, false, true, 8);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
 
-    const float freq = 700000.f;
+    const float freq = 670000.f;
     const int cycles_per_bit = 10;
     float div = clock_get_hz(clk_sys) / (freq * cycles_per_bit);
     sm_config_set_clkdiv(&c, div);
