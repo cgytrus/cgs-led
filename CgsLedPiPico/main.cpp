@@ -44,8 +44,7 @@ enum class DataType : uint8_t {
     Ping
 };
 
-uint8_t data[totalDataCount];
-bool pendingShow = false;
+std::array<uint8_t, totalDataCount> data;
 
 // freddor
 bool freddy = false;
@@ -62,24 +61,14 @@ bool usbTryRead(uint8_t& x) {
 }
 
 void showAll() {
-    //size_t di = 0;
-    //for (const auto& strip : strips) {
-    //    for (size_t i = 0; i < strip.m_size; i += 3) {
-    //        strip.put(data[di + 1] << 24 | data[di] << 16 | data[di + 2] << 8);
-    //        di += 3;
-    //    }
-    //}
+    for (const auto& strip : strips) {
+        dma_channel_wait_for_finish_blocking(strip.m_dma);
+    }
     size_t currStart = 0;
     for (const auto& strip : strips) {
         dma_channel_set_read_addr(strip.m_dma, &data[currStart], true);
         currStart += strip.m_size;
     }
-    //for (const auto& strip : strips) {
-    //    dma_channel_wait_for_finish_blocking(strip.m_dma);
-    //}
-    // can't wait for everything cuz too slow and can't not wait cuz
-    // it artifacts a little at the end of the longest strip
-    dma_channel_wait_for_finish_blocking(strips[2].m_dma);
 }
 
 void showFreddy() {
@@ -128,22 +117,28 @@ void readPower() {
 }
 
 void readData() {
-    for(size_t i = 0; i < totalDataCount; i++) {
-        if (i % 3 == 0)
-            data[i + 1] = readNext();
-        else if (i % 3 == 1)
-            data[i - 1] = readNext();
-        else
-            data[i] = readNext();
+    size_t currStart = 0;
+    for (const auto& strip : strips) {
+        dma_channel_wait_for_finish_blocking(strip.m_dma);
     }
-    pendingShow = true;
+    for (const auto& strip : strips) {
+        auto* current = &data[currStart];
+        int remaining = strip.m_size;
+        int res;
+        do {
+            res = stdio_usb.in_chars(reinterpret_cast<char*>(current), remaining);
+            if (res < 0)
+                continue;
+            remaining -= res;
+            current += res;
+        } while(remaining > 0);
+        dma_channel_set_read_addr(strip.m_dma, &data[currStart], true);
+        currStart += strip.m_size;
+    }
 }
 
 absolute_time_t lastPing;
 void readPing() {
-    if(pendingShow)
-        showAll();
-    pendingShow = false;
     usbWrite(0); // pong hehe
     lastPing = get_absolute_time();
 }
@@ -153,9 +148,7 @@ int main() {
 
     for (auto& strip : strips) {
         uint offset = pio_add_program(strip.m_pio, &ws2812_program);
-        // got 440000 from trial and error..
-        // TODO: actually calculate this properly
-        ws2812_program_init(strip.m_pio, strip.m_sm, offset, strip.m_pin, 440000.f);
+        ws2812_program_init(strip.m_pio, strip.m_sm, offset, strip.m_pin);
         strip.m_dma = dma_claim_unused_channel(true);
         dma_channel_config c = dma_channel_get_default_config(strip.m_dma);
         channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
@@ -174,6 +167,7 @@ int main() {
     for(size_t i = 0; i < totalDataCount; i++)
         data[i] = 0u;
     showAll();
+
     //size_t t = 0;
     //while (true) {
     //    for(size_t i = 0; i < totalDataCount; i++)
@@ -181,6 +175,7 @@ int main() {
     //    showAll();
     //    t++;
     //}
+
     //usbWrite(1);
 
     while (true) {
@@ -203,7 +198,7 @@ int main() {
         uint8_t x;
         if(!usbTryRead(x)) {
             // no data for more than 5 seconds
-            if (to_ms_since_boot(get_absolute_time()) - to_ms_since_boot(lastPing) < 5000)
+            if (absolute_time_diff_us(get_absolute_time(), lastPing) < 5000000)
                 continue;
             lastPing = to_ms_since_boot(get_absolute_time()) + 999999;
             for(size_t i = 0; i < totalDataCount; i++)

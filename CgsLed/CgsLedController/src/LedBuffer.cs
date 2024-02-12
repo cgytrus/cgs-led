@@ -117,8 +117,8 @@ public class LedBuffer {
     };
     public void WriteRgb(byte r, byte g, byte b, bool gamma) {
         Write(
-            new LedData(r, gamma, true),
             new LedData(g, gamma, true),
+            new LedData(r, gamma, true),
             new LedData(b, gamma, true)
         );
     }
