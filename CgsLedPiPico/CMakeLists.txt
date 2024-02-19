@@ -27,7 +27,10 @@ pico_enable_stdio_uart(${PROJECT_NAME} 0)
 
 pico_add_extra_outputs(${PROJECT_NAME})
 
-target_compile_options(${PROJECT_NAME} INTERFACE -DPICO_ENTER_USB_BOOT_ON_EXIT=1)
+add_compile_definitions(
+    -DPICO_ENTER_USB_BOOT_ON_EXIT=1
+    -DPICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=0
+)
 
 CPMAddPackage("gh:nothings/stb#f4a71b1")
 target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR})
