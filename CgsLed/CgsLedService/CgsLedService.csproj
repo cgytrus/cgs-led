@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.1.2" />
     <PackageReference Include="ScreenCapture.NET" Version="3.0.0" />
     <PackageReference Include="ScreenCapture.NET.DX11" Version="3.0.0" />
   </ItemGroup>

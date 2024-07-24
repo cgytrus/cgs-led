@@ -33,6 +33,7 @@ internal static class Program {
         Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "config");
     private static readonly string modesConfigDir = Path.Combine(configDir, "modes");
     private const string MainConfigName = "main.json";
+    private const string AudioCaptureConfigName = "audio.json";
     private const string ScreenCaptureConfigName = "screen.json";
 
     private static bool _running = true;
@@ -56,7 +57,7 @@ internal static class Program {
             return aliases;
         })();
 
-    private static readonly AudioCapture audioCapture = new();
+    private static readonly AudioCapture audioCapture = new(new AudioCaptureConfig());
     private static readonly ScreenCapture screenCapture = new(new ScreenCaptureConfig(), ledCounts);
 
     private static readonly IReadOnlyDictionary<string, LedMode?> modes = new Dictionary<string, LedMode?> {
@@ -231,6 +232,9 @@ internal static class Program {
     private static void Reload() {
         Console.WriteLine("Reloading main config");
         led.config = ConfigFile.LoadOrSave(configDir, MainConfigName, led.config);
+
+        Console.WriteLine("Reloading audio capture config");
+        audioCapture.config = ConfigFile.LoadOrSave(configDir, AudioCaptureConfigName, audioCapture.config);
 
         Console.WriteLine("Reloading screen capture config");
         screenCapture.config = ConfigFile.LoadOrSave(configDir, ScreenCaptureConfigName, screenCapture.config);
