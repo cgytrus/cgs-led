@@ -1,5 +1,7 @@
 ﻿using CgsLedController;
 
+using HPPH;
+
 using ScreenCapture.NET;
 
 namespace CgsLedService.Modes.Ambilight;
