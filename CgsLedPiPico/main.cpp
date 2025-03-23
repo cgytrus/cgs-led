@@ -8,7 +8,14 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/clocks.h"
+#include "hardware/pwm.h"
 #include "ws2812.pio.h"
+
+#include "audio/musicbox.h"
+#include "audio.hpp"
+
+#define STB_VORBIS_MAX_CHANNELS 1
+#include "stb_vorbis.c"
 
 // --- SETTINGS ---
 
@@ -33,6 +40,8 @@ static std::array<led_data, stripCount> strips = {
     led_data(12, 82, pio1, 0),
     led_data(13, 30, pio1, 1)
 };
+constexpr uint8_t relayPin = 21;
+bool powered = false;
 
 // ----------------
 
@@ -49,8 +58,10 @@ std::array<uint8_t, totalDataCount> data;
 // freddor
 bool freddy = false;
 bool freddyShown = true;
-const uint8_t freddyBrightness = 63;
-bool wasPowered = false;
+stb_vorbis* freddyVorbis = nullptr;
+constexpr uint8_t freddyBrightness = 63;
+constexpr uint8_t speakerPowerPin = 22;
+constexpr uint8_t speakerDataPin = 20;
 
 void usbWrite(const uint8_t x) {
     stdio_usb.out_chars(reinterpret_cast<const char*>(&x), 1);
@@ -93,6 +104,30 @@ void hideFreddy() {
     freddyShown = false;
 }
 
+void setPower(uint8_t value) {
+    powered = value > 0;
+    gpio_put(relayPin, powered);
+    if (!powered) {
+        for(size_t i = 0; i < totalDataCount; i++)
+            data[i] = 0u;
+        showAll();
+    }
+    audio::stop();
+    freddy = value == 2;
+    gpio_put(speakerPowerPin, freddy);
+    if (freddy) {
+        sleep_us(65535u);
+        sleep_us(65535u);
+        if (freddyVorbis) {
+            stb_vorbis_close(freddyVorbis);
+            freddyVorbis = nullptr;
+        }
+        int err;
+        freddyVorbis = stb_vorbis_open_memory(musicbox, sizeof(musicbox), &err, nullptr);
+        showFreddy();
+    }
+}
+
 uint8_t readNext() {
     uint8_t b;
     while (!usbTryRead(b)) { }
@@ -100,20 +135,7 @@ uint8_t readNext() {
 }
 
 void readPower() {
-    auto value = readNext();
-    // TODO digitalWrite(relayPin, value == 0 ? LOW : HIGH);
-    if (value == 0) {
-        for(size_t i = 0; i < totalDataCount; i++)
-            data[i] = 0u;
-        showAll();
-    }
-    wasPowered = value != 0;
-    freddy = value == 2;
-    if(freddy) {
-        sleep_us(65535u);
-        sleep_us(65535u);
-        showFreddy();
-    }
+    setPower(readNext());
 }
 
 void readData() {
@@ -146,6 +168,10 @@ void readPing() {
 int main() {
     stdio_init_all();
 
+    // relay
+    gpio_init(relayPin);
+    gpio_set_dir(relayPin, GPIO_OUT);
+
     for (auto& strip : strips) {
         uint offset = pio_add_program(strip.m_pio, &ws2812_program);
         ws2812_program_init(strip.m_pio, strip.m_sm, offset, strip.m_pin);
@@ -164,9 +190,7 @@ int main() {
     }
 
     // reset leds
-    for(size_t i = 0; i < totalDataCount; i++)
-        data[i] = 0u;
-    showAll();
+    setPower(0);
 
     //size_t t = 0;
     //while (true) {
@@ -178,35 +202,80 @@ int main() {
 
     //usbWrite(1);
 
+    // freddy speaker
+    gpio_init(speakerPowerPin);
+    gpio_set_dir(speakerPowerPin, GPIO_OUT);
+    audio::init(speakerDataPin, 22050);
+
+    bool played = true;
     while (true) {
+        // TODO: fix freddys audio :<
         // freddy fazbear mode har har har har har
-        if(freddy) {
-            if(freddyShown)
+        if (freddy) {
+            if (played && freddyVorbis) {
+                float pcm[AUDIO_BUFFER_SIZE];
+                int n;
+                n = stb_vorbis_get_samples_float_interleaved(freddyVorbis, 1, pcm, AUDIO_BUFFER_SIZE);
+                if (n == 0) {
+                    stb_vorbis_close(freddyVorbis);
+                    freddyVorbis = nullptr;
+                }
+                else {
+                    uint8_t samples[AUDIO_BUFFER_SIZE];
+                    for (int i = 0; i < n; i++) {
+                        float s = (pcm[i] + 1.f) * 0.5f * 255.f;
+                        if (s > 255.f)
+                            s = 255.f;
+                        if (s < 0.f)
+                            s = 0.f;
+                        samples[i] = static_cast<uint8_t>(s);
+                    }
+                    audio::addSamples(samples, AUDIO_BUFFER_SIZE);
+                }
+            }
+            played = audio::step();
+
+            if (freddyShown)
                 hideFreddy();
             else
                 showFreddy();
             int waitTime = freddyShown ? rand() % 65 : rand() % 17;
             for (int i = 0; i < waitTime; i++)
                 sleep_us(rand());
-            if (rand() % 100 == 0) {
-                freddy = false;
-                hideFreddy();
-                // TODO digitalWrite(relayPin, wasPowered ? HIGH : LOW);
-            }
+            //if (rand() % 100 == 0) {
+            //    freddy = false;
+            //    hideFreddy();
+            //    audio::stop();
+            //    gpio_put(speakerPowerPin, false);
+            //    if (freddyVorbis) {
+            //        stb_vorbis_close(freddyVorbis);
+            //        freddyVorbis = nullptr;
+            //    }
+            //    gpio_put(relayPin, powered);
+            //}
         }
+        //else if (!powered) {
+        //    if (rand() % 100 == 0) {
+        //        freddy = true;
+        //        gpio_put(relayPin, true);
+        //        int err;
+        //        freddyVorbis = stb_vorbis_open_memory(musicbox, sizeof(musicbox), &err, nullptr);
+        //        gpio_put(speakerPowerPin, true);
+        //    }
+        //}
 
         uint8_t x;
-        if(!usbTryRead(x)) {
+        if (!usbTryRead(x)) {
+            if (freddy)
+                continue;
             // no data for more than 5 seconds
             if (absolute_time_diff_us(get_absolute_time(), lastPing) < 5000000)
                 continue;
-            lastPing = to_ms_since_boot(get_absolute_time()) + 999999;
-            for(size_t i = 0; i < totalDataCount; i++)
-                data[i] = 0u;
-            showAll();
+            lastPing = at_the_end_of_time;
+            setPower(0);
             continue;
         }
-        switch(static_cast<DataType>(x)) {
+        switch (static_cast<DataType>(x)) {
             case DataType::Power: readPower();
                 break;
             case DataType::Data: readData();

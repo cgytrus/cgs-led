@@ -62,7 +62,7 @@ void audio::init(int pin, int frequency) {
         &sample, // read from sample
         REPETITION_RATE, // transfer once per desired sample repetition
         false // don't start yet
-        );
+    );
 
     // setup trigger DMA channel
     dma_channel_config triggerDmaConfig = dma_channel_get_default_config(triggerDma);
@@ -75,7 +75,7 @@ void audio::init(int pin, int frequency) {
         &samplePtr, // read from location containing the address of sample
         REPETITION_RATE * AUDIO_BUFFER_SIZE, // trigger once per audio sample per repetition rate
         false // don't start yet
-        );
+    );
     dma_channel_set_irq1_enabled(triggerDma, true); // fire interrupt when trigger DMA channel is done
     irq_set_exclusive_handler(DMA_IRQ_1, dma_handler);
     irq_set_enabled(DMA_IRQ_1, true);
@@ -90,7 +90,7 @@ void audio::init(int pin, int frequency) {
         &buffers[0][0], // read from audio buffer
         1, // only do one transfer (once per PWM DMA completion due to chaining)
         false // don't start yet
-        );
+    );
 
 
     // clear audio buffers
@@ -117,6 +117,10 @@ void audio::addSamples(const uint8_t* samples, size_t count) {
 void audio::stop() {
     while (!audioSamples.empty())
         audioSamples.pop();
+    for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
+        buffers[0][i] = 0;
+        buffers[1][i] = 0;
+    }
 }
 
 bool audio::step() {
