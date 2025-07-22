@@ -111,13 +111,17 @@ void setPower(uint8_t value) {
         for(size_t i = 0; i < totalDataCount; i++)
             data[i] = 0u;
         showAll();
+        // idk
+        sleep_ms(10u);
+        for(size_t i = 0; i < totalDataCount; i++)
+            data[i] = 0u;
+        showAll();
     }
     audio::stop();
     freddy = value == 2;
     gpio_put(speakerPowerPin, freddy);
     if (freddy) {
-        sleep_us(65535u);
-        sleep_us(65535u);
+        sleep_ms(100u);
         if (freddyVorbis) {
             stb_vorbis_close(freddyVorbis);
             freddyVorbis = nullptr;
@@ -207,11 +211,37 @@ int main() {
     gpio_set_dir(speakerPowerPin, GPIO_OUT);
     audio::init(speakerDataPin, 22050);
 
+    int waitTime = 0;
     bool played = true;
     while (true) {
-        // TODO: fix freddys audio :<
         // freddy fazbear mode har har har har har
         if (freddy) {
+            // run for roughly 30 seconds
+            if (rand() % (30 * 100) == 0 || !freddyVorbis) {
+                hideFreddy();
+
+                audio::stop();
+                gpio_put(speakerPowerPin, false);
+                if (freddyVorbis) {
+                    stb_vorbis_close(freddyVorbis);
+                    freddyVorbis = nullptr;
+                }
+
+                // the random flickering at the end
+                for (int j = 0; j < 12; j++) {
+                    sleep_ms(33u);
+                    int show = rand() % 2;
+                    for (size_t i = 0; i < totalDataCount; i++)
+                        data[i] = freddyBrightness * show;
+                    showAll();
+                }
+                sleep_ms(33u);
+                hideFreddy();
+
+                freddy = false;
+                gpio_put(relayPin, powered);
+            }
+
             if (played && freddyVorbis) {
                 float pcm[AUDIO_BUFFER_SIZE];
                 int n;
@@ -235,33 +265,27 @@ int main() {
             }
             played = audio::step();
 
-            if (freddyShown)
-                hideFreddy();
-            else
-                showFreddy();
-            int waitTime = freddyShown ? rand() % 65 : rand() % 17;
-            for (int i = 0; i < waitTime; i++)
-                sleep_us(rand());
-            //if (rand() % 100 == 0) {
-            //    freddy = false;
-            //    hideFreddy();
-            //    audio::stop();
-            //    gpio_put(speakerPowerPin, false);
-            //    if (freddyVorbis) {
-            //        stb_vorbis_close(freddyVorbis);
-            //        freddyVorbis = nullptr;
-            //    }
-            //    gpio_put(relayPin, powered);
-            //}
+            if (waitTime <= 0) {
+                if (freddyShown)
+                    hideFreddy();
+                else
+                    showFreddy();
+                waitTime = freddyShown ? rand() % (500 / 10 + 1) : rand() % (1200 / 10 + 1);
+            }
+
+            waitTime -= 10;
+            sleep_ms(10u);
         }
         //else if (!powered) {
-        //    if (rand() % 100 == 0) {
+        //    // freddy roughly every 60 days
+        //    if (rand() % (60 * 24 * 60 * 60 * 100) == 0) {
         //        freddy = true;
         //        gpio_put(relayPin, true);
         //        int err;
         //        freddyVorbis = stb_vorbis_open_memory(musicbox, sizeof(musicbox), &err, nullptr);
         //        gpio_put(speakerPowerPin, true);
         //    }
+        //    sleep_ms(10u);
         //}
 
         uint8_t x;
