@@ -32,29 +32,29 @@ public sealed partial class ScreenCapture : IDisposable {
 
     [MemberNotNull(nameof(_screenCaptureService), nameof(_screenCaptures))]
     public void Reload(IReadOnlyList<int> ledCounts) {
-        _screenCaptureService?.Dispose();
-        _captureZones.Clear();
-        _toUpdate.Clear();
-        _screenCaptureService = new DX11ScreenCaptureService();
-        IEnumerable<GraphicsCard> graphicsCards = _screenCaptureService.GetGraphicsCards();
-        List<Display> displays = _screenCaptureService.GetDisplays(graphicsCards.First()).ToList();
-        _screenCaptures = new IScreenCapture[displays.Count];
-        for(int i = 0; i < displays.Count; i++) {
-            Display display = displays[i];
-            IScreenCapture screenCapture = _screenCaptureService.GetScreenCapture(display);
-            _screenCaptures[i] = screenCapture;
+        lock (capturesLock) {
+            _screenCaptureService?.Dispose();
+            _captureZones.Clear();
+            _toUpdate.Clear();
+            _screenCaptureService = new DX11ScreenCaptureService();
+            IEnumerable<GraphicsCard> graphicsCards = _screenCaptureService.GetGraphicsCards();
+            List<Display> displays = _screenCaptureService.GetDisplays(graphicsCards.First()).ToList();
+            _screenCaptures = new IScreenCapture[displays.Count];
+            for(int i = 0; i < displays.Count; i++) {
+                Display display = displays[i];
+                IScreenCapture screenCapture = _screenCaptureService.GetScreenCapture(display);
+                _screenCaptures[i] = screenCapture;
 
-            // set capture timeout to 0 so that it doesn't lag other modes
-            if(screenCapture is DX11ScreenCapture dx11ScreenCapture)
-                dx11ScreenCapture.Timeout = 0;
-        }
+                // set capture timeout to 0 so that it doesn't lag other modes
+                if(screenCapture is DX11ScreenCapture dx11ScreenCapture)
+                    dx11ScreenCapture.Timeout = 0;
+            }
 
-        ScreenCapture.CaptureInfo info = GetCaptureInfo(config.screen, config.window);
+            ScreenCapture.CaptureInfo info = GetCaptureInfo(config.screen, config.window);
 
-        int botHeight = info.height / 5;
-        ScreenCapture.CaptureInfo bottomInfo = info with { y = info.y + info.height - botHeight, height = botHeight };
+            int botHeight = info.height / 5;
+            ScreenCapture.CaptureInfo bottomInfo = info with { y = info.y + info.height - botHeight, height = botHeight };
 
-        lock(capturesLock) {
             _captures.Clear();
             _captures.Add(RegisterCaptureZone(info, ledCounts[0]));
             _captures.Add(RegisterCaptureZone(info, ledCounts[1]));
@@ -157,8 +157,10 @@ public sealed partial class ScreenCapture : IDisposable {
     private static int GetApproxDownscaleLevel(int from, int to) => (int)MathF.Round(MathF.Sqrt((float)from / to));
 
     public void Update() {
-        foreach(IScreenCapture capture in _toUpdate)
-            capture.CaptureScreen();
+        lock (capturesLock) {
+            foreach (IScreenCapture capture in _toUpdate)
+                capture.CaptureScreen();
+        }
     }
 
     public void Dispose() => _screenCaptureService.Dispose();
