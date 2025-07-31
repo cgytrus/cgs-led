@@ -1,0 +1,3 @@
+[submodule "CgsLedOpenRgb/OpenRGB"]
+	path = CgsLedOpenRgb/OpenRGB
+	url = https://gitlab.com/CalcProgrammer1/OpenRGB.git
